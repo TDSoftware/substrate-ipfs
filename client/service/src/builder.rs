@@ -402,13 +402,14 @@ pub fn build_offchain_workers<TBl, TCl>(
 	spawn_handle: SpawnTaskHandle,
 	client: Arc<TCl>,
 	network: Arc<dyn sc_offchain::NetworkProvider + Send + Sync>,
+	ipfs_rt: Arc<parking_lot::Mutex<tokio::runtime::Runtime>>,
 ) -> Option<Arc<sc_offchain::OffchainWorkers<TCl, TBl>>>
 where
 	TBl: BlockT,
 	TCl: Send + Sync + ProvideRuntimeApi<TBl> + BlockchainEvents<TBl> + 'static,
 	<TCl as ProvideRuntimeApi<TBl>>::Api: sc_offchain::OffchainWorkerApi<TBl>,
 {
-	let offchain_workers = Some(Arc::new(sc_offchain::OffchainWorkers::new(client.clone())));
+	let offchain_workers = Some(Arc::new(sc_offchain::OffchainWorkers::new(client.clone(), ipfs_rt)));
 
 	// Inform the offchain worker about new imported blocks
 	if let Some(offchain) = offchain_workers.clone() {

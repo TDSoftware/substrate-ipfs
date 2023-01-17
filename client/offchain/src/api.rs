@@ -25,7 +25,8 @@ pub use http::SharedClient;
 use libp2p::{Multiaddr, PeerId};
 use sp_core::{
 	offchain::{
-		self, HttpError, HttpRequestId, HttpRequestStatus, OffchainStorage, OpaqueMultiaddr,
+		self, HttpError, HttpRequestId, HttpRequestStatus, IpfsRequest, IpfsRequestId,
+		IpfsRequestStatus, OffchainStorage, OpaqueMultiaddr,
 		OpaqueNetworkState, StorageKind, Timestamp,
 	},
 	OpaquePeerId,
@@ -33,7 +34,7 @@ use sp_core::{
 pub use sp_offchain::STORAGE_PREFIX;
 
 mod http;
-
+mod ipfs;
 mod timestamp;
 
 fn unavailable_yet<R: Default>(name: &str) -> R {
@@ -151,6 +152,7 @@ pub(crate) struct Api {
 	is_validator: bool,
 	/// Everything HTTP-related is handled by a different struct.
 	http: http::HttpApi,
+	ipfs: ipfs::IpfsApi,
 }
 
 impl offchain::Externalities for Api {
@@ -225,6 +227,18 @@ impl offchain::Externalities for Api {
 		self.http.response_read_body(request_id, buffer, deadline)
 	}
 
+	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
+		self.ipfs.request_start(request)
+	}
+
+	fn ipfs_response_wait(
+		&mut self,
+		ids: &[IpfsRequestId],
+		deadline: Option<Timestamp>,
+	) -> Vec<IpfsRequestStatus> {
+		self.ipfs.response_wait(ids, deadline)
+	}
+
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {
 		let peer_ids: HashSet<PeerId> =
 			nodes.into_iter().filter_map(|node| PeerId::from_bytes(&node.0).ok()).collect();
@@ -294,23 +308,26 @@ impl TryFrom<OpaqueNetworkState> for NetworkState {
 /// Offchain extensions implementation API
 ///
 /// This is the asynchronous processing part of the API.
-pub(crate) struct AsyncApi {
+pub(crate) struct AsyncApi<I: ::ipfs::IpfsTypes> {
 	/// Everything HTTP-related is handled by a different struct.
 	http: Option<http::HttpWorker>,
+	ipfs: Option<ipfs::IpfsWorker<I>>,
 }
 
-impl AsyncApi {
+impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 	/// Creates new Offchain extensions API implementation and the asynchronous processing part.
 	pub fn new(
 		network_provider: Arc<dyn NetworkProvider + Send + Sync>,
+		ipfs_node: ::ipfs::Ipfs<I>,
 		is_validator: bool,
 		shared_http_client: SharedClient,
 	) -> (Api, Self) {
 		let (http_api, http_worker) = http::http(shared_http_client);
+		let (ipfs_api, ipfs_worker) = ipfs::ipfs(ipfs_node);
 
-		let api = Api { network_provider, is_validator, http: http_api };
+		let api = Api { network_provider, is_validator, http: http_api, ipfs: ipfs_api };
 
-		let async_api = Self { http: Some(http_worker) };
+		let async_api = Self { http: Some(http_worker), ipfs: Some(ipfs_worker) };
 
 		(api, async_api)
 	}

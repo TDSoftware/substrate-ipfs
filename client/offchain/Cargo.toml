@@ -36,10 +36,13 @@ sp-api = { version = "4.0.0-dev", path = "../../primitives/api" }
 sp-core = { version = "7.0.0", path = "../../primitives/core" }
 sp-offchain = { version = "4.0.0-dev", path = "../../primitives/offchain" }
 sp-runtime = { version = "7.0.0", path = "../../primitives/runtime" }
+rust-ipfs = { git = "https://github.com/dariusc93/rust-ipfs", default-features = false}
+tokio = "1.22.0" # TODO: might be moved back to dev dependencies
+tracing-subscriber = { version = "0.2.25", features = ["parking_lot"] } # TODO: can be removed
+anyhow = "1" # TODO: can be removed
 
 [dev-dependencies]
 lazy_static = "1.4.0"
-tokio = "1.22.0"
 sc-block-builder = { version = "0.10.0-dev", path = "../block-builder" }
 sc-client-db = { version = "0.10.0-dev", default-features = true, path = "../db" }
 sc-transaction-pool = { version = "4.0.0-dev", path = "../transaction-pool" }

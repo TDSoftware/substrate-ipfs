@@ -3,7 +3,7 @@
 // Re-export pallet items so that they can be accessed from the crate namespace.
 pub use pallet::*;
 
-
+//use node_cli;
 use sp_core::crypto::KeyTypeId;
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
 
@@ -109,6 +109,11 @@ pub mod pallet {
 			// use frame_support::sp_runtime::traits::Hash;
 
 			log::info!("Offchain worker called for TDS Test pallet {:?}", block_number);
+			sp_runtime::offchain::ipfs::ipfs_core::test();
+
+			//   sp_runtime::offchain::ipfs::PendingRequest::new(request).map_err(|_| Error::CannotCreateRequest)?;
+
+			//node_cli::ipfs_api::ipfs_core::test();
 		}
 	}
 

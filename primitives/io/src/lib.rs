@@ -1419,6 +1419,13 @@ pub trait Offchain {
 			.expect("set_authorized_nodes can be called only in the offchain worker context")
 			.set_authorized_nodes(nodes, authorized_only)
 	}
+
+	/// Initiates an IPFS request
+	fn ipfs_start_node(&mut self) {
+		self.extension::<OffchainWorkerExt>()
+			.expect("ipfs_request_start can be called only in the offchain worker context!")
+			.ipfs_start_node();
+	}
 }
 
 /// Wasm only interface that provides functions for calling into the allocator.

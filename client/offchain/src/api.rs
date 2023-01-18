@@ -18,7 +18,7 @@
 
 use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep};
 
-use crate::NetworkProvider;
+use crate::{NetworkProvider, api::ipfs::ipfs_api::start_node};
 use codec::{Decode, Encode};
 use futures::Future;
 pub use http::SharedClient;
@@ -33,7 +33,7 @@ use sp_core::{
 pub use sp_offchain::STORAGE_PREFIX;
 
 mod http;
-
+mod ipfs;
 mod timestamp;
 
 fn unavailable_yet<R: Default>(name: &str) -> R {
@@ -231,6 +231,13 @@ impl offchain::Externalities for Api {
 
 		self.network_provider.set_authorized_peers(peer_ids);
 		self.network_provider.set_authorized_only(authorized_only);
+	}
+
+	fn ipfs_start_node(&mut self) {
+		tracing::debug!("Fuck 4");
+		tracing::info!("Fuck 4/1");
+
+		ipfs::ipfs_api::start_node();
 	}
 }
 

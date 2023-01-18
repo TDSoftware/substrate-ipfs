@@ -432,6 +432,8 @@ pub trait Externalities: Send {
 	/// - `authorized_only`: if true, only the authorized nodes are allowed to connect,
 	/// otherwise unauthorized nodes can also be connected through other mechanism.
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool);
+
+	fn ipfs_start_node(&mut self);
 }
 
 impl<T: Externalities + ?Sized> Externalities for Box<T> {
@@ -505,6 +507,11 @@ impl<T: Externalities + ?Sized> Externalities for Box<T> {
 
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {
 		(&mut **self).set_authorized_nodes(nodes, authorized_only)
+	}
+
+	fn ipfs_start_node(&mut self){
+		log::info!("Fuck 3");
+		(&mut **self).ipfs_start_node();
 	}
 }
 
@@ -613,6 +620,11 @@ impl<T: Externalities> Externalities for LimitedExternalities<T> {
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {
 		self.check(Capabilities::NODE_AUTHORIZATION, "set_authorized_nodes");
 		self.externalities.set_authorized_nodes(nodes, authorized_only)
+	}
+
+	fn ipfs_start_node(&mut self) {
+		log::info!("Fuck 1");
+		self.externalities.ipfs_start_node()
 	}
 }
 

@@ -353,6 +353,10 @@ impl offchain::Externalities for TestOffchainExt {
 	fn set_authorized_nodes(&mut self, _nodes: Vec<OpaquePeerId>, _authorized_only: bool) {
 		unimplemented!()
 	}
+
+	fn ipfs_start_node(&mut self) {
+		log::info!("Fuck 2");
+    }
 }
 
 impl offchain::DbExternalities for TestOffchainExt {

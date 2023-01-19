@@ -31,6 +31,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+use frame_support::traits::Randomness;
 
 
 /** Create a "unique" id for each command
@@ -40,9 +41,7 @@ mod benchmarking;
 pub fn generate_id<T: Config>() -> [u8; 32] {
   let payload = (
 
-	// TODO: check what is going on here
-    // T::IpfsRandomness::random(&b"ipfs-request-id"[..]).0,
-    0,
+	T::IpfsRandomness::random(&b"ipfs-request-id"[..]).0,
 	<frame_system::Pallet<T>>::block_number(),
   );
   payload.using_encoded(sp_io::hashing::blake2_256)

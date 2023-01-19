@@ -1608,6 +1608,7 @@ impl pallet_template::Config for Runtime {
 
 impl pallet_ipfs_core::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
 impl pallet_whitelist::Config for Runtime {

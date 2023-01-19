@@ -218,10 +218,11 @@ where
 	>,
 {
 	let keystore_container = KeystoreContainer::new(&config.keystore)?;
+	let ipfs_rt = tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
 
 	let task_manager = {
 		let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
-		TaskManager::new(config.tokio_handle.clone(), registry)?
+		TaskManager::new(config.tokio_handle.clone(), ipfs_rt, registry)?
 	};
 
 	let chain_spec = &config.chain_spec;

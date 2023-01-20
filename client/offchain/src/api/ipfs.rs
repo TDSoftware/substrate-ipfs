@@ -54,8 +54,8 @@ async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8
 
 /// Creates a pair of [`IpfsApi`] and [`IpfsWorker`].
 pub fn ipfs<I: ::ipfs::IpfsTypes>(ipfs_node: ::ipfs::Ipfs<I>) -> (IpfsApi, IpfsWorker<I>) {
-	let (to_worker, from_api) = tracing_unbounded("mpsc_ocw_to_ipfs_worker", 0);
-	let (to_api, from_worker) = tracing_unbounded("mpsc_ocw_to_ipfs_api", 0);
+	let (to_worker, from_api) = tracing_unbounded("mpsc_ocw_to_ipfs_worker", 100_00);
+	let (to_api, from_worker) = tracing_unbounded("mpsc_ocw_to_ipfs_api", 100_00);
 
 	let api = IpfsApi {
 		to_worker,
@@ -123,8 +123,8 @@ impl IpfsApi {
 		deadline: Option<Timestamp>,
 	) -> Vec<IpfsRequestStatus> {
 		let mut deadline = timestamp::deadline_to_future(deadline);
-
 		let mut output = vec![IpfsRequestStatus::DeadlineReached; ids.len()];
+		
 		loop {
 			{
 				let mut must_wait_more = false;

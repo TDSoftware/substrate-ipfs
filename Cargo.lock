@@ -3635,6 +3635,7 @@ dependencies = [
  "pallet-im-online",
  "pallet-indices",
  "pallet-ipfs-core",
+ "pallet-ipfs-example",
  "pallet-lottery",
  "pallet-membership",
  "pallet-message-queue",
@@ -6268,6 +6269,24 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-ipfs-example"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-ipfs-core",
  "parity-scale-codec",
  "scale-info",
  "serde",

@@ -176,7 +176,9 @@ impl IpfsApi {
 			// Update internal state based on received message.
 			match next_message {
 				Some(WorkerToApi::Response { id, value }) => match self.requests.remove(&id) {
+
 					Some(IpfsApiRequest::Dispatched) => {
+						log::info!("IPFS response success");
 						self.requests.insert(id, IpfsApiRequest::Response(value));
 					},
 					_ => error!("State mismatch between the API and worker"),
@@ -184,13 +186,14 @@ impl IpfsApi {
 
 				Some(WorkerToApi::Fail { id, error }) => match self.requests.remove(&id) {
 					Some(IpfsApiRequest::Dispatched) => {
+						log::info!("IPFS response fail");
 						self.requests.insert(id, IpfsApiRequest::Fail(error));
 					},
 					_ => error!("State mismatch between the API and worker"),
 				},
 
 				None => {
-					error!("Worker has crashed");
+					error!("IPFS Worker returned None 2: response_wait");
 					return ids
 						.iter()
 						.map(|_| {

@@ -62,6 +62,9 @@ pub mod pallet {
   };
   use sp_core::crypto::KeyTypeId;
 
+  use sp_runtime::traits::Dispatchable;
+  use frame_support::dispatch::{PostDispatchInfo, GetDispatchInfo};
+
   pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
   const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
 
@@ -74,15 +77,16 @@ pub mod pallet {
     type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 
     /// Because this pallet emits events, it depends on the runtime's definition of an event.
-    type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+    type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
     /// overarching dispatch call type.
-    type Call: From<Call<Self>>;
+	type RuntimeCall: From<Call<Self>>;
 
-    //type IpfsRandomness: Randomness<Self::Hash, Self::BlockNumber>;
+	type IpfsRandomness: frame_support::traits::Randomness<Self::Hash, Self::BlockNumber>;
   }
 
   #[pallet::pallet]
+  #[pallet::without_storage_info]
   #[pallet::generate_store(pub(super) trait Store)]
   pub struct Pallet<T>(_);
 
@@ -206,11 +210,11 @@ pub mod pallet {
   impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
     fn offchain_worker(block_number: T::BlockNumber) {
       if let Err(_err) = Self::print_metadata(&"*** IPFS off-chain worker started with ***") {
-        error!("IPFS: Error occurred during `print_metadata`");
+        log::error!("IPFS: Error occurred during `print_metadata`");
       }
 
       if let Err(_err) = Self::ocw_process_command_requests(block_number) {
-        error!("IPFS: command request");
+        log::error!("IPFS: command request");
       }
     }
   }
@@ -436,7 +440,7 @@ pub mod pallet {
           },
           Err(e) => match e {
             IpfsError::<T>::RequestFailed => {
-              error!("IPFS: failed to perform a request")
+				log::error!("IPFS: failed to perform a request")
             },
             _ => {},
           },
@@ -472,7 +476,7 @@ pub mod pallet {
       // TODO: Dynamic signers so that its not only the validator who can sign the request.
       let signer = Signer::<T, T::AuthorityId>::all_accounts();
       if !signer.can_sign() {
-        error!("*** IPFS *** ---- No local accounts available. Consider adding one via `author_insertKey` RPC.");
+        log::error!("*** IPFS *** ---- No local accounts available. Consider adding one via `author_insertKey` RPC.");
 
         return Err(IpfsError::<T>::RequestFailed)?
       }
@@ -487,7 +491,7 @@ pub mod pallet {
             info!("callback sent")
           },
           Err(e) => {
-            error!("Failed to submit transaction {:?}", e)
+            log::error!("Failed to submit transaction {:?}", e)
           },
         }
       }

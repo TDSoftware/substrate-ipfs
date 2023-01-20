@@ -19,7 +19,7 @@ use ipfs::{
 	ipld::dag_pb::PbNode, BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes, Ipld,
 	Multiaddr, MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
 };
-use log::error;
+use log::{error, info};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
@@ -97,6 +97,8 @@ enum IpfsApiRequest {
 impl IpfsApi {
 	/// Mimics the corresponding method in the offchain API.
 	pub fn request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
+
+		log::info!("Starting request {:?}", request);
 		let id = self.next_id;
 		debug_assert!(!self.requests.contains_key(&id));
 		match self.next_id.0.checked_add(1) {
@@ -174,11 +176,10 @@ impl IpfsApi {
 			};
 
 			// Update internal state based on received message.
+			log::info!("IPFS next message {:?}", next_message);
 			match next_message {
 				Some(WorkerToApi::Response { id, value }) => match self.requests.remove(&id) {
-
 					Some(IpfsApiRequest::Dispatched) => {
-						log::info!("IPFS response success");
 						self.requests.insert(id, IpfsApiRequest::Response(value));
 					},
 					_ => error!("State mismatch between the API and worker"),
@@ -230,6 +231,7 @@ struct ApiToWorker {
 	request: IpfsRequest,
 }
 
+#[derive(Debug)]
 /// Message send from the API to the worker.
 enum WorkerToApi {
 	/// A request has succeeded.
@@ -264,6 +266,8 @@ pub struct IpfsWorker<I: ipfs::IpfsTypes> {
 struct IpfsWorkerRequest(
 	Pin<Box<dyn Future<Output = Result<IpfsNativeResponse, ipfs::Error>> + Send>>,
 );
+
+#[derive(Debug)]
 
 pub enum IpfsNativeResponse {
 	Addrs(Vec<(PeerId, Vec<Multiaddr>)>),
@@ -442,7 +446,10 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 		},
 		IpfsRequest::LocalAddrs => Ok(IpfsNativeResponse::LocalAddrs(ipfs.addrs_local().await?)),
 		IpfsRequest::LocalRefs => Ok(IpfsNativeResponse::LocalRefs(ipfs.refs_local().await?)),
-		IpfsRequest::Peers => Ok(IpfsNativeResponse::Peers(ipfs.peers().await?)),
+		IpfsRequest::Peers => {
+			info!("*** IPFS PEERS REQUESTED ***");
+			Ok(IpfsNativeResponse::Peers(ipfs.peers().await?))
+		},
 		IpfsRequest::Publish { topic, message } => {
 			let ret = ipfs.pubsub_publish(String::from_utf8(topic)?, message).await?;
 			Ok(IpfsNativeResponse::Publish(ret))

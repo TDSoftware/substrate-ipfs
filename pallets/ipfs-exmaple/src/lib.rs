@@ -85,9 +85,14 @@ pub mod pallet {
 	type IpfsRandomness: frame_support::traits::Randomness<Self::Hash, Self::BlockNumber>;
   }
 
+  	/// The current storage version.
+	const STORAGE_VERSION: frame_support::traits::StorageVersion =
+	frame_support::traits::StorageVersion::new(1);
+
   #[pallet::pallet]
-  #[pallet::without_storage_info]
   #[pallet::generate_store(pub(super) trait Store)]
+  #[pallet::storage_version(STORAGE_VERSION)]
+  #[pallet::without_storage_info]
   pub struct Pallet<T>(_);
 
   // The pallet's runtime storage items.
@@ -452,11 +457,16 @@ pub mod pallet {
 
     /** Output the current state of IPFS worker */
     fn print_metadata(message: &str) -> Result<(), IpfsError<T>> {
-      let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
-        peers
-      } else {
-        Vec::new()
-      };
+
+		// TODO: TDS must be implemented
+    //   let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
+    //     peers
+    //   } else {
+    //     Vec::new()
+    //   };
+
+		// TODO: remove once the peers request is working
+	let peers:Vec<sp_runtime::offchain::OpaqueMultiaddr> = Vec::new();
 
       info!("{}", message);
       info!("IPFS: Is currently connected to {} peers", peers.len());

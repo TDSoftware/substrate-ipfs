@@ -457,23 +457,20 @@ pub mod pallet {
 
     /** Output the current state of IPFS worker */
     fn print_metadata(message: &str) -> Result<(), IpfsError<T>> {
-		// TODO: TDS must be implemented
-    //   let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
-    //     peers
-    //   } else {
-    //     Vec::new()
-    //   };
 
-		// TODO: remove once the peers request is working
-	let peers:Vec<sp_runtime::offchain::OpaqueMultiaddr> = Vec::new();
+      let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
+        peers
+      } else {
+        Vec::new()
+      };
 
       info!("{}", message);
       info!("IPFS: Is currently connected to {} peers", peers.len());
       if !peers.is_empty() {
         info!("IPFS: Peer Ids: {:?}", str::from_utf8(&addresses_to_utf8_safe_bytes(peers)))
       }
-      info!("IPFS: CommandRequest size: {}", Commands::<T>::decode_len().unwrap_or(0));
 
+      info!("IPFS: CommandRequest size: {}", Commands::<T>::decode_len().unwrap_or(0));
       Ok(())
     }
 

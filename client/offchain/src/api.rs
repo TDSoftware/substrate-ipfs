@@ -333,8 +333,11 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 	}
 
 	/// Run a processing task for the API
-	pub fn process(self) -> impl Future<Output = ()> {
-		self.http.expect("`process` is only called once; qed")
+	pub async fn process(self) {
+		let http = self.http.expect("`process` is only called once; qed");
+		let ipfs_worker = self.ipfs.expect("`process` is only called once; qed");
+
+		futures::join!(http, ipfs_worker);
 	}
 }
 

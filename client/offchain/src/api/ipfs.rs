@@ -124,7 +124,7 @@ impl IpfsApi {
 	) -> Vec<IpfsRequestStatus> {
 		let mut deadline = timestamp::deadline_to_future(deadline);
 		let mut output = vec![IpfsRequestStatus::DeadlineReached; ids.len()];
-		
+
 		loop {
 			{
 				let mut must_wait_more = false;
@@ -166,10 +166,7 @@ impl IpfsApi {
 			// we loop back and `return`.
 			let next_message = {
 				let mut next_msg = future::maybe_done(self.from_worker.next());
-				log::info!("next_msg 1{:?}", next_msg);
 				futures::executor::block_on(future::select(&mut next_msg, &mut deadline));
-				log::info!("next_msg 2 {:?}", next_msg);
-				
 
 				if let future::MaybeDone::Done(msg) = next_msg {
 					msg

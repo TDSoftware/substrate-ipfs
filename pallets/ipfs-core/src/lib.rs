@@ -233,9 +233,7 @@ fn acquire_command_request_lock<T: Config>(
       Ok(Some(block)) =>
         if block_number != block {
           info!("Lock failed, lock was not in current block. block_number: {:?}, block: {:?}",block_number, block );
-		// TODO: this is wrong, remove OK and uncomment Err again
-		  //Err(Error::<T>::FailedToAcquireLock)
-		  Ok(block_number)
+		  Err(Error::<T>::FailedToAcquireLock)
         } else {
           Ok(block)
         },

@@ -5,7 +5,9 @@
 /// <https://docs.substrate.io/v3/runtime/frame>
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
 
-use frame_support::{dispatch::DispatchResult, traits::Randomness};
+use frame_support::{
+	dispatch::DispatchResult, traits::Randomness
+};
 
 use log::{error, info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
@@ -27,8 +29,8 @@ pub mod crypto {
     traits::Verify,
     MultiSignature, MultiSigner,
   };
-  app_crypto!(sr25519, sp_core::crypto::key_types::IPFS);
 
+  app_crypto!(sr25519, sp_core::crypto::key_types::IPFS);
   pub struct TestAuthId;
 
   impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
@@ -47,7 +49,6 @@ pub mod crypto {
   }
 }
 
-// ** TODO: move this public methods into another file
 
 pub use pallet::*;
 
@@ -56,6 +57,7 @@ pub mod pallet {
   use super::*;
   use frame_support::pallet_prelude::*;
   use frame_system::pallet_prelude::*;
+
   use pallet_ipfs_core::{
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
     ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand,

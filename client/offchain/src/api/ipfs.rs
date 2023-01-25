@@ -449,7 +449,6 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 		IpfsRequest::LocalAddrs => Ok(IpfsNativeResponse::LocalAddrs(ipfs.addrs_local().await?)),
 		IpfsRequest::LocalRefs => Ok(IpfsNativeResponse::LocalRefs(ipfs.refs_local().await?)),
 		IpfsRequest::Peers => {
-			info!("*** IPFS PEERS REQUESTED ***");
 			Ok(IpfsNativeResponse::Peers(ipfs.peers().await?))
 		},
 		IpfsRequest::Publish { topic, message } => {
@@ -549,7 +548,7 @@ mod tests {
 		let mut rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {
 			let (ipfs, fut): (Ipfs<ipfs::TestTypes>, _) =
-				ipfs::UninitializedIpfs::new(options, None).await.start().await.unwrap();
+				ipfs::UninitializedIpfs::new(options).await.start().await.unwrap();
 			tokio::task::spawn(fut);
 			ipfs
 		});

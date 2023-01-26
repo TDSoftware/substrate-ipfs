@@ -97,10 +97,9 @@ enum IpfsApiRequest {
 impl IpfsApi {
 	/// Mimics the corresponding method in the offchain API.
 	pub fn request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
-
-		log::info!("Starting request {:?}", request);
 		let id = self.next_id;
 		debug_assert!(!self.requests.contains_key(&id));
+
 		match self.next_id.0.checked_add(1) {
 			Some(id) => self.next_id.0 = id,
 			None => {
@@ -167,18 +166,14 @@ impl IpfsApi {
 			let next_message = {
 				let mut next_msg = future::maybe_done(self.from_worker.next());
 				futures::executor::block_on(future::select(&mut next_msg, &mut deadline));
-
 				if let future::MaybeDone::Done(msg) = next_msg {
 					msg
 				} else {
-					log::info!("No future::MaybeDone::Done");
 					debug_assert!(matches!(deadline, future::MaybeDone::Done(..)));
 					continue
 				}
 			};
 
-			// Update internal state based on received message.
-			log::info!("IPFS next message {:?}", next_message);
 			match next_message {
 				Some(WorkerToApi::Response { id, value }) => match self.requests.remove(&id) {
 					Some(IpfsApiRequest::Dispatched) => {
@@ -189,7 +184,7 @@ impl IpfsApi {
 
 				Some(WorkerToApi::Fail { id, error }) => match self.requests.remove(&id) {
 					Some(IpfsApiRequest::Dispatched) => {
-						log::info!("IPFS response fail");
+						log::warn!("IPFS response fail");
 						self.requests.insert(id, IpfsApiRequest::Fail(error));
 					},
 					_ => error!("State mismatch between the API and worker"),

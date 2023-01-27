@@ -1780,7 +1780,7 @@ construct_runtime!(
 		MessageQueue: pallet_message_queue,
 		Template: pallet_template,
 		IpfsCore: pallet_tds_ipfs_core,
-		TDSIpfs: pallet_tds_ipfs,
+		Ipfs: pallet_tds_ipfs,
 	}
 );
 

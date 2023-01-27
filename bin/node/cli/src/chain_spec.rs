@@ -372,7 +372,7 @@ pub fn testnet_genesis(
 			min_join_bond: 1 * DOLLARS,
 			..Default::default()
 		},
-		tds_ipfs: Default::default(),
+		ipfs: Default::default(),
 	}
 }
 

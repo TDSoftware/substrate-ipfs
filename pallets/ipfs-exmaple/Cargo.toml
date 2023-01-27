@@ -28,7 +28,7 @@ sp-std = { default-features = false, version = "5.0.0", path = "../../primitives
 sp-runtime = { default-features = false, version = "7.0.0", path = "../../primitives/runtime" }
 log = { default-features = false, version = "0.4" }
 
-pallet-ipfs-core = { default-features = false, version = "4.0.0-dev", path = "../ipfs-core" }
+pallet-tds-ipfs-core = { default-features = false, version = "4.0.0-dev", path = "../tds-ipfs-core" }
 
 [features]
 default = ['std']
@@ -41,7 +41,7 @@ std = [
     'serde/std',
     'sp-io/std',
     'sp-std/std',
-    'pallet-ipfs-core/std',
+    'pallet-tds-ipfs-core/std',
 ]
 
 runtime-benchmarks = ["frame-benchmarking"]

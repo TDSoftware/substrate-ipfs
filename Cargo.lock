@@ -3634,7 +3634,6 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-ipfs-core",
  "pallet-ipfs-example",
  "pallet-lottery",
  "pallet-membership",
@@ -3664,6 +3663,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-state-trie-migration",
  "pallet-sudo",
+ "pallet-tds-ipfs-core",
  "pallet-template",
  "pallet-timestamp",
  "pallet-tips",
@@ -6262,23 +6262,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-ipfs-core"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-ipfs-example"
 version = "4.0.0-dev"
 dependencies = [
@@ -6286,7 +6269,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "pallet-ipfs-core",
+ "pallet-tds-ipfs-core",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -6918,6 +6901,23 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-tds-ipfs-core"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",

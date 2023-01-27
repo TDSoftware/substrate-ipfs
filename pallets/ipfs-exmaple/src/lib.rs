@@ -58,7 +58,7 @@ pub mod pallet {
   use frame_support::pallet_prelude::*;
   use frame_system::pallet_prelude::*;
 
-  use pallet_ipfs_core::{
+  use pallet_tds_ipfs_core::{
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
     ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand,
   };
@@ -73,7 +73,7 @@ pub mod pallet {
   /// Configure the pallet by specifying the parameters and types on which it depends.
   #[pallet::config]
   pub trait Config:
-    frame_system::Config + pallet_ipfs_core::Config + CreateSignedTransaction<Call<Self>>
+    frame_system::Config + pallet_tds_ipfs_core::Config + CreateSignedTransaction<Call<Self>>
   {
     /// The identifier type for an offchain worker.
     type AuthorityId: AppCrypto<Self::Public, Self::Signature>;

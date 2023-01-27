@@ -169,7 +169,6 @@ members = [
 	"frame/whitelist",
 	"pallets/template",
 	"pallets/tds-ipfs-core",
-	"pallets/ipfs-exmaple",
 	"primitives/api",
 	"primitives/api/proc-macro",
 	"primitives/api/test",

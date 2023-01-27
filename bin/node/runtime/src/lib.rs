@@ -106,7 +106,7 @@ use sp_runtime::generic::Era;
 
 // Import pallets
 pub use pallet_tds_ipfs_core;
-pub use pallet_ipfs_example;
+pub use pallet_tds_ipfs;
 pub use pallet_template;
 
 /// Generated voter bag information.
@@ -1612,8 +1612,8 @@ impl pallet_tds_ipfs_core::Config for Runtime {
 	type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
-impl pallet_ipfs_example::Config for Runtime {
-	type AuthorityId = pallet_ipfs_example::crypto::TestAuthId;
+impl pallet_tds_ipfs::Config for Runtime {
+	type AuthorityId = pallet_tds_ipfs::crypto::TestAuthId;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type IpfsRandomness = RandomnessCollectiveFlip;
@@ -1780,7 +1780,7 @@ construct_runtime!(
 		MessageQueue: pallet_message_queue,
 		Template: pallet_template,
 		IpfsCore: pallet_tds_ipfs_core,
-		IpfsExample: pallet_ipfs_example,
+		TDSIpfs: pallet_tds_ipfs,
 	}
 );
 
@@ -2305,7 +2305,7 @@ impl_runtime_apis! {
 			add_benchmarks!(params, batches);
 			add_benchmark!(params, batches, pallet_template, Template);
 			add_benchmark!(params, batches, pallet_ipfs_core, IpfsCore);
-			add_benchmark!(params, batches, pallet_ipfs_example, IpfsExample);
+			add_benchmark!(params, batches, pallet_tds_ipfs, TDSIpfs);
 			Ok(batches)
 		}
 	}

@@ -1,5 +1,5 @@
 [package]
-name = 'pallet-ipfs-example'
+name = 'pallet-tds-ipfs'
 version = "4.0.0-dev"
 description = "FRAME pallet that provides a almost complete set of extrinsics for interacting with an IPFS ocw"
 authors = ['Dan Henton <https://github.com/danhenton>']

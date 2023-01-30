@@ -2939,6 +2939,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hex-literal"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
+
+[[package]]
 name = "hkdf"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3317,7 +3323,6 @@ dependencies = [
 [[package]]
 name = "ipfs"
 version = "0.2.1"
-source = "git+https://github.com/rs-ipfs/rust-ipfs#eb8e93553039663016fcb95230f2269ca7155e2a"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -3326,10 +3331,12 @@ dependencies = [
  "byteorder",
  "bytes",
  "cid 0.5.1",
+ "criterion",
  "either",
  "fs2",
  "futures",
  "hash_hasher",
+ "hex-literal",
  "ipfs-bitswap",
  "ipfs-unixfs",
  "libp2p 0.43.0",
@@ -3338,15 +3345,19 @@ dependencies = [
  "once_cell",
  "prost 0.9.0",
  "prost-build 0.8.0",
+ "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha2 0.9.9",
  "sled",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-util 0.6.10",
  "tracing",
  "tracing-futures",
+ "tracing-subscriber 0.2.25",
  "trust-dns-resolver 0.20.4",
  "void",
 ]
@@ -3354,7 +3365,6 @@ dependencies = [
 [[package]]
 name = "ipfs-bitswap"
 version = "0.1.0"
-source = "git+https://github.com/rs-ipfs/rust-ipfs#eb8e93553039663016fcb95230f2269ca7155e2a"
 dependencies = [
  "cid 0.5.1",
  "fnv",
@@ -3374,14 +3384,19 @@ dependencies = [
 [[package]]
 name = "ipfs-unixfs"
 version = "0.2.0"
-source = "git+https://github.com/rs-ipfs/rust-ipfs#eb8e93553039663016fcb95230f2269ca7155e2a"
 dependencies = [
  "cid 0.5.1",
+ "criterion",
  "either",
  "filetime",
+ "hash_hasher",
+ "hex-literal",
+ "libc",
+ "multibase 0.9.1",
  "multihash 0.11.4",
  "quick-protobuf",
  "sha2 0.9.9",
+ "tar",
 ]
 
 [[package]]
@@ -11535,6 +11550,16 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "tar"
+version = "0.4.38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b55807c0344e1e6c04d7c965f5289c39a8d94ae23ed5c0b57aabac549f871c6"
+dependencies = [
+ "filetime",
+ "libc",
+]
 
 [[package]]
 name = "target-lexicon"

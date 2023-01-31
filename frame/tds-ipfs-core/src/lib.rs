@@ -53,7 +53,7 @@ pub fn ocw_process_command<T: Config>(
   command_request: CommandRequest<T>,
   persistence_key: &[u8; 24],
 ) -> Result<Vec<IpfsResponse>, Error<T>> {
-  
+
   let acquire_lock = acquire_command_request_lock::<T>(block_number, &command_request);
 
   match acquire_lock {
@@ -61,7 +61,7 @@ pub fn ocw_process_command<T: Config>(
       let mut result = Vec::<IpfsResponse>::new();
 
       for command in command_request.clone().ipfs_commands {
-        match command {
+        let command_result = match command {
           IpfsCommand::ConnectTo(ref address) => {
             match ipfs_request::<T>(IpfsRequest::Connect(OpaqueMultiaddr(
               address.clone(),
@@ -116,6 +116,7 @@ pub fn ocw_process_command<T: Config>(
               _ => Err(Error::<T>::RequestFailed),
             }
           },
+
           IpfsCommand::FindPeer(ref peer_id) => {
             match ipfs_request::<T>(IpfsRequest::FindPeer(peer_id.clone())) {
               Ok(IpfsResponse::FindPeer(addresses)) =>
@@ -123,6 +124,7 @@ pub fn ocw_process_command<T: Config>(
               _ => Err(Error::<T>::RequestFailed),
             }
           },
+
           IpfsCommand::GetProviders(ref cid) => {
             match ipfs_request::<T>(IpfsRequest::GetProviders(cid.clone())) {
               Ok(IpfsResponse::GetProviders(peer_ids)) =>
@@ -131,9 +133,17 @@ pub fn ocw_process_command<T: Config>(
             }
           },
         };
+
+		match command_result {
+    		Ok(_) => log::debug!("Command successfully processed: {:?}", command),
+   			Err(_) => log::debug!("Command failed: {:?}", command),
+		}
       }
 
-      processed_commands::<T>(&command_request, persistence_key);
+      match processed_commands::<T>(&command_request, persistence_key) {
+        Ok(_) => log::debug!("IPFS command request successfully processed"),
+   		Err(_) => log::debug!("IPFS command request failed"),
+      }
 
       Ok(result)
     },

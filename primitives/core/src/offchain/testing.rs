@@ -65,9 +65,10 @@ pub struct TestPersistentOffchainDB {
 	persistent: Arc<RwLock<InMemOffchainStorage>>,
 }
 
+/// Pending IPFS test request
 #[derive(Debug, PartialEq, Eq)]
 pub struct IpfsPendingRequest {
-	// IPFS request ID
+	/// IPFS request ID
 	pub id: IpfsRequestId,
 }
 
@@ -136,7 +137,7 @@ pub struct OffchainState {
 
 	/// A list of pending IPFS requests.
 	pub ipfs_requests: BTreeMap<IpfsRequestId, IpfsPendingRequest>,
-	expected_ipfs_requests: BTreeMap<IpfsRequestId, IpfsPendingRequest>,
+	// expected_ipfs_requests: BTreeMap<IpfsRequestId, IpfsPendingRequest>,
 
 	/// Persistent local storage
 	pub persistent_storage: TestPersistentOffchainDB,
@@ -362,7 +363,7 @@ impl offchain::Externalities for TestOffchainExt {
 		}
 	}
 
-	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
+	fn ipfs_request_start(&mut self, _request: IpfsRequest) -> Result<IpfsRequestId, ()> {
 		let mut state = self.0.write();
 		let id = IpfsRequestId(state.ipfs_requests.len() as u16);
 		state.ipfs_requests.insert(id.clone(), IpfsPendingRequest { id });

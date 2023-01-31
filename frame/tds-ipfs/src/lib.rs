@@ -228,7 +228,6 @@ pub mod pallet {
 	/// Adds arbitrary bytes to the IPFS repository. The registered `Cid` is printed out in the
     /// logs.
 
-
 	#[pallet::call_index(0)]
     #[pallet::weight(200_000)]
     pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>) -> DispatchResult {
@@ -248,6 +247,7 @@ pub mod pallet {
 
 	/** Fin IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
     Otherwise the decimal representation of the bytes is displayed instead. **/
+
 	#[pallet::call_index(1)]
     #[pallet::weight(100_000)]
     pub fn cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
@@ -271,7 +271,7 @@ pub mod pallet {
 
 	#[pallet::call_index(2)]
 	#[pallet::weight(100_000)]
-    pub fn ipfs_connect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
+    pub fn connect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::ConnectTo(address));
@@ -290,8 +290,9 @@ pub mod pallet {
     run of the off-chain `connection` process.
     **/
 
+	#[pallet::call_index(3)]
     #[pallet::weight(500_000)]
-    pub fn ipfs_disconnect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
+    pub fn disconnect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::DisconnectFrom(address));
@@ -308,8 +309,10 @@ pub mod pallet {
 
     /** Add arbitrary bytes to the IPFS repository. The registered `Cid` is printed in the
      * logs * */
+
+	 #[pallet::call_index(4)]
     #[pallet::weight(300_000)]
-    pub fn ipfs_remove_block(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+    pub fn remove_block(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::RemoveBlock(cid));
@@ -325,8 +328,10 @@ pub mod pallet {
     }
 
     /** Pin a given `Cid` non-recursively. * */
-    #[pallet::weight(100_000)]
-    pub fn ipfs_insert_pin(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+
+	#[pallet::call_index(5)]
+	#[pallet::weight(100_000)]
+    pub fn insert_pin(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::InsertPin(cid));
@@ -342,8 +347,10 @@ pub mod pallet {
     }
 
     /** Unpin a given `Cid` non-recursively. * */
-    #[pallet::weight(100_000)]
-    pub fn ipfs_remove_pin(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+
+	#[pallet::call_index(6)]
+	#[pallet::weight(100_000)]
+    pub fn remove_pin(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::RemovePin(cid));
@@ -359,8 +366,10 @@ pub mod pallet {
     }
 
     /** Find addresses associated with the given `PeerId` * */
-    #[pallet::weight(100_000)]
-    pub fn ipfs_dht_find_peer(origin: OriginFor<T>, peer_id: Vec<u8>) -> DispatchResult {
+
+	#[pallet::call_index(7)]
+	#[pallet::weight(100_000)]
+    pub fn dht_find_peer(origin: OriginFor<T>, peer_id: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::FindPeer(peer_id));
@@ -376,8 +385,10 @@ pub mod pallet {
     }
 
     /** Find the list of `PeerId`'s known to be hosting the given `Cid` * */
-    #[pallet::weight(100_000)]
-    pub fn ipfs_dht_find_providers(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+
+	#[pallet::call_index(8)]
+	#[pallet::weight(100_000)]
+    pub fn dht_find_providers(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::GetProviders(cid));
@@ -392,18 +403,16 @@ pub mod pallet {
       Ok(Self::deposit_event(Event::FindProvidersIssued(requester)))
     }
 
+	#[pallet::call_index(9)]
     #[pallet::weight(0)]
     pub fn ocw_callback(
       origin: OriginFor<T>,
       identifier: [u8; 32],
       data: Vec<u8>,
     ) -> DispatchResult {
-      info!("IPFS: #ocw_callback !!!");
       let signer = ensure_signed(origin)?;
-
-      // Side effect:, swap_remove will change the ordering of the Vec!
-      // TODO: the lock still exists in the ocw storage
       let mut callback_command: Option<CommandRequest<T>> = None;
+
       Commands::<T>::mutate(|command_requests| {
         let mut commands = command_requests.clone().unwrap();
 
@@ -417,9 +426,10 @@ pub mod pallet {
 
       Self::deposit_event(Event::OcwCallback(signer));
 
-      Self::command_callback(&callback_command.unwrap(), data);
-
-      Ok(())
+      match Self::command_callback(&callback_command.unwrap(), data) {
+		Ok(_) => Ok(()),
+		Err(_) => Err(DispatchError::Corruption),
+	  }
     }
   }
 
@@ -443,8 +453,7 @@ pub mod pallet {
         ) {
           Ok(responses) => {
             let callback_response = ocw_parse_ipfs_response::<T>(responses);
-
-            Self::signed_callback(&command_request, callback_response);
+            _ = Self::signed_callback(&command_request, callback_response);
           },
           Err(e) => match e {
             IpfsError::<T>::RequestFailed => {

@@ -113,7 +113,6 @@ pallet-vesting = { version = "4.0.0-dev", default-features = false, path = "../.
 pallet-whitelist = { version = "4.0.0-dev", default-features = false, path = "../../../frame/whitelist" }
 
 # Additional pallets
-pallet-template = { version = "4.0.0-dev", default-features = false, path = "../../../pallets/template" }
 pallet-tds-ipfs-core = { version = "4.0.0-dev", default-features = false, path = "../../../frame/tds-ipfs-core" }
 pallet-tds-ipfs = { version = "4.0.0-dev", default-features = false, path = "../../../frame/tds-ipfs" }
 

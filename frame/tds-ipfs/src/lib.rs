@@ -231,10 +231,10 @@ pub mod pallet {
 
 	#[pallet::call_index(0)]
     #[pallet::weight(200_000)]
-    pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>) -> DispatchResult {
+    pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>, version: u8) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
-      commands.push(IpfsCommand::AddBytes(received_bytes));
+      commands.push(IpfsCommand::AddBytes(received_bytes, version));
 
       let ipfs_command = CommandRequest::<T> {
         identifier: generate_id::<T>(),
@@ -530,7 +530,7 @@ pub mod pallet {
           IpfsCommand::DisconnectFrom(address) => Self::deposit_event(
             Event::DisconnectedFrom(command_request.clone().requester, address),
           ),
-          IpfsCommand::AddBytes(_) => Self::deposit_event(Event::AddedCid(
+          IpfsCommand::AddBytes(_, _) => Self::deposit_event(Event::AddedCid(
             command_request.clone().requester,
             data.clone(),
           )),

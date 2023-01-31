@@ -28,11 +28,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 use frame_support::traits::Randomness;
-
 
 /** Create a "unique" id for each command
 
@@ -57,7 +53,7 @@ pub fn ocw_process_command<T: Config>(
   command_request: CommandRequest<T>,
   persistence_key: &[u8; 24],
 ) -> Result<Vec<IpfsResponse>, Error<T>> {
-  // TODO: make the lock optional: Not all requests may need a lock
+  
   let acquire_lock = acquire_command_request_lock::<T>(block_number, &command_request);
 
   match acquire_lock {

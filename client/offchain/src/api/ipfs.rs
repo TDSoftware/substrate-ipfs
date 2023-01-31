@@ -19,7 +19,7 @@ use ipfs::{
 	ipld::dag_pb::PbNode, BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes, Ipld,
 	Multiaddr, MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
 };
-use log::{error, info};
+use log::{error};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
@@ -43,7 +43,12 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>) -> Result<ipfs::C
 	pb_node.insert("Links".to_string(), links.into());
 
 	// TODO: https://docs.rs/cid/0.7.0/cid, https://docs.rs/cid/0.5.1/src/cid/codec.rs.html#9-11 https://docs.rs/ipfs/0.2.1/ipfs/type.Cid.html
-	dag.put(pb_node.into(), Codec::DagProtobuf).await
+	// TODO: pass version through function
+
+	let version = 0;
+	let codec = if version == 0 {Codec::DagProtobuf} else {Codec::DagCBOR};
+
+	dag.put(pb_node.into(), codec).await
 }
 
 async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, ipfs::Error> {

@@ -5,11 +5,9 @@
 /// <https://docs.substrate.io/v3/runtime/frame>
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
 
-use frame_support::{
-	dispatch::DispatchResult, traits::Randomness
-};
+use frame_support::{ dispatch::DispatchResult};
 
-use log::{error, info};
+use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
 use sp_std::{str, vec::Vec};
 
@@ -18,9 +16,6 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
 
 pub mod crypto {
   use sp_core::sr25519::Signature as Sr25519Signature;
@@ -49,7 +44,6 @@ pub mod crypto {
   }
 }
 
-
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -62,10 +56,9 @@ pub mod pallet {
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
     ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand,
   };
+
   use sp_core::crypto::KeyTypeId;
 
-  use sp_runtime::traits::Dispatchable;
-  use frame_support::dispatch::{PostDispatchInfo, GetDispatchInfo};
 
   pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
   const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
@@ -87,9 +80,8 @@ pub mod pallet {
 	type IpfsRandomness: frame_support::traits::Randomness<Self::Hash, Self::BlockNumber>;
   }
 
-  	/// The current storage version.
-	const STORAGE_VERSION: frame_support::traits::StorageVersion =
-	frame_support::traits::StorageVersion::new(1);
+  /// The current storage version.
+  const STORAGE_VERSION: frame_support::traits::StorageVersion = frame_support::traits::StorageVersion::new(1);
 
   #[pallet::pallet]
   #[pallet::generate_store(pub(super) trait Store)]
@@ -229,12 +221,56 @@ pub mod pallet {
   // Dispatchable functions allows users to interact with the pallet and invoke state changes.
   // These functions materialize as "extrinsics", which are often compared to transactions.
   // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+
   #[pallet::call]
   impl<T: Config> Pallet<T> {
+
+	/// Adds arbitrary bytes to the IPFS repository. The registered `Cid` is printed out in the
+    /// logs.
+
+
+	#[pallet::call_index(0)]
+    #[pallet::weight(200_000)]
+    pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>) -> DispatchResult {
+      let requester = ensure_signed(origin)?;
+      let mut commands = Vec::<IpfsCommand>::new();
+      commands.push(IpfsCommand::AddBytes(received_bytes));
+
+      let ipfs_command = CommandRequest::<T> {
+        identifier: generate_id::<T>(),
+        requester: requester.clone(),
+        ipfs_commands: commands,
+      };
+
+      Commands::<T>::append(ipfs_command);
+      Ok(Self::deposit_event(Event::QueuedDataToAdd(requester)))
+    }
+
+	/** Fin IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
+    Otherwise the decimal representation of the bytes is displayed instead. **/
+	#[pallet::call_index(1)]
+    #[pallet::weight(100_000)]
+    pub fn cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+      let requester = ensure_signed(origin)?;
+      let mut commands = Vec::<IpfsCommand>::new();
+      commands.push(IpfsCommand::CatBytes(cid));
+
+      let ipfs_command = CommandRequest::<T> {
+        identifier: generate_id::<T>(),
+        requester: requester.clone(),
+        ipfs_commands: commands,
+      };
+
+      Commands::<T>::append(ipfs_command);
+      Ok(Self::deposit_event(Event::QueuedDataToCat(requester)))
+    }
+
     /** Mark a `multiaddr` as a desired connection target. The connection target will be established
     during the next run of the off-chain `connection` process.
     - Example: /ip4/127.0.0.1/tcp/4001/p2p/<Ipfs node Id> */
-    #[pallet::weight(100_000)]
+
+	#[pallet::call_index(2)]
+	#[pallet::weight(100_000)]
     pub fn ipfs_connect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
@@ -253,6 +289,7 @@ pub mod pallet {
     /** Queues a `Multiaddr` to be disconnected. The connection will be severed during the next
     run of the off-chain `connection` process.
     **/
+
     #[pallet::weight(500_000)]
     pub fn ipfs_disconnect(origin: OriginFor<T>, address: Vec<u8>) -> DispatchResult {
       let requester = ensure_signed(origin)?;
@@ -267,42 +304,6 @@ pub mod pallet {
 
       Commands::<T>::append(ipfs_command);
       Ok(Self::deposit_event(Event::DisconnectedRequested(requester)))
-    }
-
-    /// Adds arbitrary bytes to the IPFS repository. The registered `Cid` is printed out in the
-    /// logs.
-    #[pallet::weight(200_000)]
-    pub fn ipfs_add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>) -> DispatchResult {
-      let requester = ensure_signed(origin)?;
-      let mut commands = Vec::<IpfsCommand>::new();
-      commands.push(IpfsCommand::AddBytes(received_bytes));
-
-      let ipfs_command = CommandRequest::<T> {
-        identifier: generate_id::<T>(),
-        requester: requester.clone(),
-        ipfs_commands: commands,
-      };
-
-      Commands::<T>::append(ipfs_command);
-      Ok(Self::deposit_event(Event::QueuedDataToAdd(requester)))
-    }
-
-    /** Fin IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
-    Otherwise the decimal representation of the bytes is displayed instead. **/
-    #[pallet::weight(100_000)]
-    pub fn ipfs_cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
-      let requester = ensure_signed(origin)?;
-      let mut commands = Vec::<IpfsCommand>::new();
-      commands.push(IpfsCommand::CatBytes(cid));
-
-      let ipfs_command = CommandRequest::<T> {
-        identifier: generate_id::<T>(),
-        requester: requester.clone(),
-        ipfs_commands: commands,
-      };
-
-      Commands::<T>::append(ipfs_command);
-      Ok(Self::deposit_event(Event::QueuedDataToCat(requester)))
     }
 
     /** Add arbitrary bytes to the IPFS repository. The registered `Cid` is printed in the

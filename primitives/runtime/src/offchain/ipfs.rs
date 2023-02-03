@@ -149,8 +149,10 @@ impl Response {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_core::offchain::{testing, OffchainExt};
+	use sp_core::offchain::{testing};
 	use sp_io::TestExternalities;
+
+	use sp_runtime::offchain::OffchainExt;
 
 	#[test]
 	fn basic_metadata_request_and_response() {

@@ -342,6 +342,11 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 }
 
 #[cfg(test)]
+/*
+impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
+
+}*/
+
 mod tests {
 	use super::*;
 	use libp2p::PeerId;
@@ -446,16 +451,7 @@ mod tests {
 		let mock = Arc::new(TestNetwork());
 		let shared_client = SharedClient::new();
 
-		let options = ::ipfs::IpfsOptions::Default::default();
-		let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-
-		let ipfs_node = tokio_runtime.block_on(async move {
-			let (ipfs, fut) = ::ipfs::UninitializedIpfs::new(options).await.start().await.unwrap();
-			tokio::task::spawn(fut);
-			ipfs
-		});
-
-		AsyncApi::new(mock, ipfs_node, false, shared_client).0
+		AsyncApi::newTestAPI(mock, false, shared_client).0
 	}
 
 	fn offchain_db() -> Db<LocalStorage> {

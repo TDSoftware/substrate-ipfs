@@ -349,6 +349,14 @@ impl TaskManager {
 		})
 	}
 
+	pub fn newForTesting(
+		tokio_handle: Handle,
+		prometheus_registry: Option<&Registry>,
+	) -> Result<Self, PrometheusError> {
+		let ipfs_rt = tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
+		Self::new(tokio_handle, ipfs_rt, prometheus_registry)
+	}
+
 	/// Get a handle for spawning tasks.
 	pub fn spawn_handle(&self) -> SpawnTaskHandle {
 		SpawnTaskHandle {

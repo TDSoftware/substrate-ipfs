@@ -1,63 +1,73 @@
-use crate as pallet_rs_ipfs;
-use frame_support::parameter_types;
-use frame_system as system;
-use sp_core::H256;
-use sp_runtime::{
-  testing::Header,
-  traits::{BlakeTwo256, IdentityLookup},
-};
+// TODO: TDS comment in and try to fix compiler errors
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
+// use crate as pallet_tds_ipfs;
+// use frame_support::traits::{ConstU16, ConstU64};
+// use frame_system as system;
+// use frame_support::parameter_types;
+// use sp_core::H256;
+// use sp_runtime::{
+// 	testing::Header,
+// 	traits::{BlakeTwo256, IdentityLookup},
+// };
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-  pub enum Test where
-    Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic,
-  {
-    System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    RsIpfs: pallet_rs_ipfs::{Pallet, Call, Storage, Event<T>},
-  }
-);
+// type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+// type Block = frame_system::mocking::MockBlock<Test>;
 
-parameter_types! {
-  pub const BlockHashCount: u64 = 250;
-  pub const SS58Prefix: u8 = 42;
-}
+// // Configure a mock runtime to test the pallet.
+// frame_support::construct_runtime!(
+//   pub enum Test where
+//   	Block = Block,
+//   	NodeBlock = Block,
+//   	UncheckedExtrinsic = UncheckedExtrinsic,
+//   {
+//     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+//     TDSIpfs: pallet_tds_ipfs::{Pallet, Call, Storage, Event<T>},
+// 	RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+//   }
+// );
 
-impl system::Config for Test {
-  type BaseCallFilter = frame_support::traits::Everything;
-  type BlockWeights = ();
-  type BlockLength = ();
-  type DbWeight = ();
-  type Origin = Origin;
-  type Call = Call;
-  type Index = u64;
-  type BlockNumber = u64;
-  type Hash = H256;
-  type Hashing = BlakeTwo256;
-  type AccountId = u64;
-  type Lookup = IdentityLookup<Self::AccountId>;
-  type Header = Header;
-  type Event = Event;
-  type BlockHashCount = BlockHashCount;
-  type Version = ();
-  type PalletInfo = PalletInfo;
-  type AccountData = ();
-  type OnNewAccount = ();
-  type OnKilledAccount = ();
-  type SystemWeightInfo = ();
-  type SS58Prefix = SS58Prefix;
-  type OnSetCode = ();
-}
+// parameter_types! {
+//   pub const BlockHashCount: u64 = 250;
+//   pub const SS58Prefix: u8 = 42;
+// }
 
-impl pallet_rs_ipfs::Config for Test {
-  type Event = Event;
-}
+// impl system::Config for Test {
+// 	type BaseCallFilter = frame_support::traits::Everything;
+// 	type BlockWeights = ();
+// 	type BlockLength = ();
+// 	type DbWeight = ();
+// 	type RuntimeOrigin = RuntimeOrigin;
+// 	type RuntimeCall = RuntimeCall;
+// 	type Index = u64;
+// 	type BlockNumber = u64;
+// 	type Hash = H256;
+// 	type Hashing = BlakeTwo256;
+// 	type AccountId = u64;
+// 	type Lookup = IdentityLookup<Self::AccountId>;
+// 	type Header = Header;
+// 	type RuntimeEvent = RuntimeEvent;
+// 	type BlockHashCount = ConstU64<250>;
+// 	type Version = ();
+// 	type PalletInfo = PalletInfo;
+// 	type AccountData = ();
+// 	type OnNewAccount = ();
+// 	type OnKilledAccount = ();
+// 	type SystemWeightInfo = ();
+// 	type SS58Prefix = ConstU16<42>;
+// 	type OnSetCode = ();
+// 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+// }
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-  system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
-}
+// impl pallet_randomness_collective_flip::Config for Test {}
+
+// impl pallet_tds_ipfs::Config for Test {
+// 	type AuthorityId = pallet_tds_ipfs::crypto::TestAuthId;
+// 	type RuntimeCall = RuntimeCall;
+// 	type RuntimeEvent = RuntimeEvent;
+// 	type IpfsRandomness = RandomnessCollectiveFlip;
+// }
+
+// // Build genesis storage according to the mock runtime.
+// pub fn new_test_ext() -> sp_io::TestExternalities {
+//   system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+// }

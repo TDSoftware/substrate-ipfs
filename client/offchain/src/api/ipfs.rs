@@ -543,7 +543,7 @@ mod tests {
 
 	#[test]
 	fn metadata_calls() {
-		let options = ipfs::IpfsOptions::default();
+		let options = ipfs::IpfsOptions::inmemory_with_generated_keys();
 
 		let mut rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {

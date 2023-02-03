@@ -1,6 +1,7 @@
-use crate as pallet_rs_ipfs;
+use crate as pallet_tds_ipfs;
 use frame_support::parameter_types;
 use frame_system as system;
+
 use sp_core::H256;
 use sp_runtime::{
   testing::Header,
@@ -18,7 +19,8 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic,
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    RsIpfs: pallet_rs_ipfs::{Pallet, Call, Storage, Event<T>},
+    TDSIpfs: pallet_tds_ipfs::{Pallet, Call, Storage, Event<T>},
+	RandomnessCollectiveFlip: pallet_randomness_collective_flip,
   }
 );
 
@@ -32,8 +34,9 @@ impl system::Config for Test {
   type BlockWeights = ();
   type BlockLength = ();
   type DbWeight = ();
-  type Origin = Origin;
-  type Call = Call;
+  type RuntimeOrigin = RuntimeOrigin;
+  type MaxConsumers = frame_support::traits::ConstU32<16>;
+  type RuntimeCall = RuntimeCall;
   type Index = u64;
   type BlockNumber = u64;
   type Hash = H256;
@@ -41,7 +44,7 @@ impl system::Config for Test {
   type AccountId = u64;
   type Lookup = IdentityLookup<Self::AccountId>;
   type Header = Header;
-  type Event = Event;
+  type RuntimeEvent = RuntimeEvent;
   type BlockHashCount = BlockHashCount;
   type Version = ();
   type PalletInfo = PalletInfo;
@@ -53,8 +56,12 @@ impl system::Config for Test {
   type OnSetCode = ();
 }
 
-impl pallet_rs_ipfs::Config for Test {
+
+impl pallet_randomness_collective_flip::Config for Test {}
+
+impl pallet_tds_ipfs::Config for Test {
   type RuntimeEvent = RuntimeEvent;
+  type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
 // Build genesis storage according to the mock runtime.

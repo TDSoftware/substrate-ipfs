@@ -28,6 +28,9 @@ sp-std = { default-features = false, version = "5.0.0", path = "../../primitives
 sp-runtime = { default-features = false, version = "7.0.0", path = "../../primitives/runtime" }
 log = { default-features = false, version = "0.4" }
 
+[dev-dependencies]
+pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, path = "../randomness-collective-flip" }
+
 [features]
 default = ['std']
 std = [

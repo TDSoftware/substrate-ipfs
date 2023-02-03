@@ -1,4 +1,4 @@
-use crate::{mock::*, DataCommand, Error};
+use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 use log::info;
 use std::str;

@@ -384,7 +384,7 @@ mod tests {
 
 		runner
 			.run_node_until_exit(move |cfg| async move {
-				let task_manager = TaskManager::new(cfg.tokio_handle.clone(), None).unwrap();
+				let task_manager = TaskManager::newForTesting(cfg.tokio_handle.clone(), None).unwrap();
 				let (sender, receiver) = futures::channel::oneshot::channel();
 
 				// We need to use `spawn_blocking` here so that we get a dedicated thread for our
@@ -449,7 +449,7 @@ mod tests {
 				runner
 					.run_node_until_exit(move |cfg| async move {
 						let task_manager =
-							TaskManager::new(cfg.tokio_handle.clone(), None).unwrap();
+							TaskManager::newForTesting(cfg.tokio_handle.clone(), None).unwrap();
 						let (sender, receiver) = futures::channel::oneshot::channel();
 
 						// We need to use `spawn_blocking` here so that we get a dedicated thread

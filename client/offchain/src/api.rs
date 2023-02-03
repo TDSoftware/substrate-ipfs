@@ -16,10 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep};
+use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep, borrow::{Borrow, BorrowMut}};
 
 use crate::NetworkProvider;
 use codec::{Decode, Encode};
+use futures::Future;
 pub use http::SharedClient;
 
 use libp2p::{Multiaddr, PeerId};
@@ -152,7 +153,7 @@ pub(crate) struct Api {
 	is_validator: bool,
 	/// Everything HTTP-related is handled by a different struct.
 	http: http::HttpApi,
-	ipfs: ipfs::IpfsApi,
+	ipfs: Option<ipfs::IpfsApi>,
 }
 
 impl offchain::Externalities for Api {
@@ -228,7 +229,12 @@ impl offchain::Externalities for Api {
 	}
 
 	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
-		self.ipfs.request_start(request)
+		match self.ipfs.borrow_mut() {
+    		Some(ipfs) => {
+				ipfs.request_start(request)
+			},
+    		None => Err(()),
+		}
 	}
 
 	fn ipfs_response_wait(
@@ -236,7 +242,13 @@ impl offchain::Externalities for Api {
 		ids: &[IpfsRequestId],
 		deadline: Option<Timestamp>,
 	) -> Vec<IpfsRequestStatus> {
-		self.ipfs.response_wait(ids, deadline)
+
+		match self.ipfs.borrow_mut() {
+    		Some(ipfs) => {
+				ipfs.response_wait(ids, deadline)
+			},
+    		None => Vec::new(),
+		}
 	}
 
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {
@@ -325,11 +337,30 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 		let (http_api, http_worker) = http::http(shared_http_client);
 		let (ipfs_api, ipfs_worker) = ipfs::ipfs(ipfs_node);
 
-		let api = Api { network_provider, is_validator, http: http_api, ipfs: ipfs_api };
+		let api = Api { network_provider, is_validator, http: http_api, ipfs: Some(ipfs_api) };
 
 		let async_api = Self { http: Some(http_worker), ipfs: Some(ipfs_worker) };
 
 		(api, async_api)
+	}
+	/// Creates new Offchain extensions API implementation and the asynchronous processing part but without IPFS Node.
+	pub fn http(
+		network_provider: Arc<dyn NetworkProvider + Send + Sync>,
+		is_validator: bool,
+		shared_http_client: SharedClient,
+	) -> (Api, Self) {
+		let (http_api, http_worker) = http::http(shared_http_client);
+
+		let api = Api { network_provider, is_validator, http: http_api, ipfs: None };
+
+		let async_api = Self { http: Some(http_worker), ipfs: None };
+
+		(api, async_api)
+	}
+
+	/// Run a processing task for the API
+	pub fn process_http(self) -> http::HttpWorker {
+		self.http.expect("`process` is only called once; qed")
 	}
 
 	/// Run a processing task for the API
@@ -339,6 +370,10 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 
 		futures::join!(http, ipfs_worker);
 	}
+}
+
+impl AsyncApi {
+
 }
 
 #[cfg(test)]

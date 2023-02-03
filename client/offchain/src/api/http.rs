@@ -1101,11 +1101,11 @@ mod tests {
 
 		{
 			let mock = Arc::new(TestNetwork());
-			let (mut api, async_api) = AsyncApi::new(mock, false, shared_client.clone());
+			let (mut api, async_api) = AsyncApi::http(mock, false, shared_client.clone());
 			api.timestamp();
 
 			futures::executor::block_on(async move {
-				assert!(futures::poll!(async_api.process()).is_pending());
+				assert!(futures::poll!(async_api.process_http()).is_pending());
 			});
 		}
 
@@ -1116,11 +1116,11 @@ mod tests {
 
 		{
 			let mock = Arc::new(TestNetwork());
-			let (mut api, async_api) = AsyncApi::new(mock, false, shared_client.clone());
+			let (mut api, async_api) = AsyncApi::http(mock, false, shared_client.clone());
 			let id = api.http_request_start("lol", "nope", &[]).unwrap();
 			api.http_request_write_body(id, &[], None).unwrap();
 			futures::executor::block_on(async move {
-				assert!(futures::poll!(async_api.process()).is_pending());
+				assert!(futures::poll!(async_api.process_http()).is_pending());
 			});
 		}
 

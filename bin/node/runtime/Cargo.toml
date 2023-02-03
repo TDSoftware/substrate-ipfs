@@ -115,7 +115,7 @@ pallet-whitelist = { version = "4.0.0-dev", default-features = false, path = "..
 # Additional pallets
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../../../pallets/template" }
 pallet-tds-ipfs-core = { version = "4.0.0-dev", default-features = false, path = "../../../pallets/tds-ipfs-core" }
-pallet-ipfs-example = { version = "4.0.0-dev", default-features = false, path = "../../../pallets/ipfs-exmaple" }
+pallet-tds-ipfs = { version = "4.0.0-dev", default-features = false, path = "../../../pallets/tds-ipfs" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", path = "../../../utils/wasm-builder", optional = true }
@@ -212,7 +212,7 @@ std = [
 	"pallet-alliance/std",
 	"substrate-wasm-builder",
 	"pallet-tds-ipfs-core/std",
-	"pallet-ipfs-example/std",
+	"pallet-tds-ipfs/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -267,7 +267,7 @@ runtime-benchmarks = [
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-tds-ipfs-core/runtime-benchmarks",
-	"pallet-ipfs-example/runtime-benchmarks",
+	"pallet-tds-ipfs/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 ]
 try-runtime = [
@@ -329,5 +329,5 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-tds-ipfs-core/try-runtime",
-	"pallet-ipfs-example/try-runtime",
+	"pallet-tds-ipfs/try-runtime",
 ]

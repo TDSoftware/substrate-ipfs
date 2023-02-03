@@ -1,0 +1,48 @@
+[package]
+name = 'pallet-ipfs-example'
+version = "4.0.0-dev"
+description = "FRAME pallet that provides a almost complete set of extrinsics for interacting with an IPFS ocw"
+authors = ['Dan Henton <https://github.com/danhenton>']
+homepage = "https://substrate.io/"
+edition = '2021'
+license = "Apache-2.0"
+publish = false
+repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+
+serde = { version = "1.0.136" }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+frame-support = { default-features = false, version = "4.0.0-dev", path = "../../frame/support" }
+frame-system = { default-features = false, version = "4.0.0-dev", path = "../../frame/system" }
+frame-benchmarking = { default-features = false, version = "4.0.0-dev", path = "../../frame/benchmarking", optional = true }
+sp-core = { default-features = false, version = "7.0.0", path = "../../primitives/core" }
+sp-io = { default-features = false, version = "7.0.0", path = "../../primitives/io" }
+sp-std = { default-features = false, version = "5.0.0", path = "../../primitives/std" }
+sp-runtime = { default-features = false, version = "7.0.0", path = "../../primitives/runtime" }
+log = { default-features = false, version = "0.4" }
+
+pallet-ipfs-core = { default-features = false, version = "4.0.0-dev", path = "../ipfs-core" }
+
+[features]
+default = ['std']
+std = [
+    'codec/std',
+    'scale-info/std',
+    'frame-support/std',
+    'frame-system/std',
+    'frame-benchmarking/std',
+    'serde/std',
+    'sp-io/std',
+    'sp-std/std',
+    'pallet-ipfs-core/std',
+]
+
+runtime-benchmarks = ["frame-benchmarking"]
+try-runtime = ["frame-support/try-runtime"]

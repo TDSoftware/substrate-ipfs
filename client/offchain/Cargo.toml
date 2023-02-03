@@ -32,10 +32,15 @@ sc-client-api = { version = "4.0.0-dev", path = "../api" }
 sc-network-common = { version = "0.10.0-dev", path = "../network/common" }
 sc-peerset = { version = "4.0.0-dev", path = "../peerset" }
 sc-utils = { version = "4.0.0-dev", path = "../utils" }
+tokio = { version = "1.10", default-features = false, features = ["full"] }
 sp-api = { version = "4.0.0-dev", path = "../../primitives/api" }
 sp-core = { version = "7.0.0", path = "../../primitives/core" }
 sp-offchain = { version = "4.0.0-dev", path = "../../primitives/offchain" }
 sp-runtime = { version = "7.0.0", path = "../../primitives/runtime" }
+# IPFS
+log = "0.4.8"
+cid = { version = "0.5.1", cid = "*", multihash = "0.10" }
+ipfs = { git = "https://github.com/rs-ipfs/rust-ipfs" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"

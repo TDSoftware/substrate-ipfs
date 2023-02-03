@@ -278,6 +278,8 @@ bitflags::bitflags! {
 		const NODE_AUTHORIZATION = 0b0000_1000_0000;
 		/// Access time related functionality
 		const TIME = 0b0001_0000_0000;
+		//Access to IPFS node.
+		const IPFS = 0b0000_1111_1111;
 	}
 }
 
@@ -290,6 +292,152 @@ impl Capabilities {
 		Capabilities::TRANSACTION_POOL | Capabilities::KEYSTORE | Capabilities::OFFCHAIN_DB_READ
 	}
 }
+
+
+/// A request that can be handled by an IPFS node.
+#[derive(Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, PassByCodec)]
+pub enum IpfsRequest {
+	/// Get the list of node's peerIds and addresses.
+	Addrs,
+	/// Add the given bytes to the IPFS repo.
+	AddBytes(Vec<u8>),
+	/// Add an address to listen on.
+	AddListeningAddr(OpaqueMultiaddr),
+	/// Get the bitswap stats of the node.
+	BitswapStats,
+	/// Get bytes with the given Cid from the IPFS repo and display them.
+	CatBytes(Vec<u8>),
+	/// Connect to an external IPFS node with the specified Multiaddr.
+	Connect(OpaqueMultiaddr),
+	/// Disconnect from an external IPFS node with the specified Multiaddr.
+	Disconnect(OpaqueMultiaddr),
+	/// Obtain an IPFS block.
+	GetBlock(Vec<u8>),
+	/// Find the addresses related to the given PeerId.
+	FindPeer(Vec<u8>),
+	/// Get a list of PeerIds closest to the given PeerId.
+	GetClosestPeers(Vec<u8>),
+	/// Find the providers for the given Cid.
+	GetProviders(Vec<u8>),
+	/// Get the node's public key and dedicated external addresses.
+	Identity,
+	/// Pins a given Cid recursively or directly (non-recursively)
+	InsertPin(Vec<u8>, bool),
+	/// Get the list of node's local addresses.
+	LocalAddrs,
+	/// Get the list of `Cid`s of blocks known to a node.
+	LocalRefs,
+	/// Obtain the list of node's peers.
+	Peers,
+	/// Publish a given message to a topic.
+	Publish {
+		/// The topic to publish the message to.
+		topic: Vec<u8>,
+		/// The message to publish.
+		message: Vec<u8>,
+	},
+	/// Remove a block from the ipfs repo. A pinned block cannot be removed.
+	RemoveBlock(Vec<u8>),
+	/// Remove an address that is listened on.
+	RemoveListeningAddr(OpaqueMultiaddr),
+	/// Unpins a given Cid recursively or only directly.
+	RemovePin(Vec<u8>, bool),
+	/// Subscribe to a given topic.
+	Subscribe(Vec<u8>),
+	/// Obtain the list of currently subscribed topics.
+	SubscriptionList,
+	/// Unsubscribe from a given topic.
+	Unsubscribe(Vec<u8>),
+}
+
+/// Status of the HTTP request
+#[derive(Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, PassByCodec)]
+pub enum IpfsRequestStatus {
+	/// Deadline was reached while we waited for this request to finish.
+	///
+	/// Note the deadline is controlled by the calling part, it not necessarily
+	/// means that the request has timed out.
+	DeadlineReached,
+	/// An error has occurred during the request, for example a timeout or the
+	/// remote has closed our socket.
+	///
+	/// The request is now considered destroyed. To retry the request you need
+	/// to construct it again.
+	IoError(Vec<u8>),
+	/// The passed ID is invalid in this context.
+	Invalid,
+	/// The request has finished successfully.
+	Finished(IpfsResponse),
+}
+
+/// A response that can be returned from the IPFS node.
+#[derive(Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, PassByCodec)]
+pub enum IpfsResponse {
+	/// A list of pairs of node's peers and their known addresses.
+	Addrs(Vec<(Vec<u8>, Vec<OpaqueMultiaddr>)>),
+	/// The Cid of the added bytes.
+	AddBytes(Vec<u8>),
+	/// A collection of node stats related to the bitswap protocol.
+	BitswapStats {
+		/// The number of blocks sent.
+		blocks_sent: u64,
+		/// The number of bytes sent.
+		data_sent: u64,
+		/// The number of blocks received.
+		blocks_received: u64,
+		/// The number of bytes received.
+		data_received: u64,
+		/// The number of duplicate blocks received.
+		dup_blks_received: u64,
+		/// The number of duplicate bytes received.
+		dup_data_received: u64,
+		/// The list of peers.
+		peers: Vec<Vec<u8>>,
+		/// The list of wanted CIDs and their bitswap priorities.
+		wantlist: Vec<(Vec<u8>, i32)>,
+	},
+	/// The data received from IPFS.
+	CatBytes(Vec<u8>),
+	/// A list of addresses known to be related to a PeerId.
+	FindPeer(Vec<OpaqueMultiaddr>),
+	/// The list of PeerIds closest to the given PeerId.
+	GetClosestPeers(Vec<Vec<u8>>),
+	/// A list of PeerIds known to provide the given Cid.
+	GetProviders(Vec<Vec<u8>>),
+	/// The local node's public key and the externally visible and listened to addresses.
+	Identity(Vec<u8>, Vec<OpaqueMultiaddr>),
+	/// A list of local node's externally visible and listened to addresses.
+	LocalAddrs(Vec<OpaqueMultiaddr>),
+	/// A list of locally available blocks by their Cids.
+	LocalRefs(Vec<Vec<u8>>),
+	/// The list of currently connected peers.
+	Peers(Vec<OpaqueMultiaddr>),
+	/// The Cid of the removed block.
+	RemoveBlock(Vec<u8>),
+	/// A request was processed successfully and there is no extra value to return.
+	Success,
+}
+
+/// Opaque type for offchain IPFS requests.
+#[derive(
+	Clone, Copy, PartialEq, Eq, PartialOrd, Ord, RuntimeDebug, Encode, Decode, PassByInner,
+)]
+#[cfg_attr(feature = "std", derive(Hash))]
+pub struct IpfsRequestId(pub u16);
+
+
+/// An error enum returned by some IPFS methods.
+#[derive(Clone, Copy, PartialEq, Eq, RuntimeDebug, Encode, Decode, PassByEnum)]
+#[repr(C)]
+pub enum IpfsError {
+	/// The requested action couldn't been completed within a deadline.
+	DeadlineReached = 1,
+	/// There was an IO Error while processing the request.
+	IoError = 2,
+	/// The ID of the request is invalid in this context.
+	Invalid = 3,
+}
+
 
 /// An extended externalities for offchain workers.
 pub trait Externalities: Send {
@@ -421,6 +569,16 @@ pub trait Externalities: Send {
 		deadline: Option<Timestamp>,
 	) -> Result<usize, HttpError>;
 
+	/// Initiates an IPFS request.
+	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()>;
+
+	fn ipfs_response_wait(
+		&mut self,
+		ids: &[IpfsRequestId],
+		deadline: Option<Timestamp>,
+	) -> Vec<IpfsRequestStatus>;
+
+
 	/// Set the authorized nodes from runtime.
 	///
 	/// In a permissioned network, the connections between nodes need to reach a
@@ -501,6 +659,18 @@ impl<T: Externalities + ?Sized> Externalities for Box<T> {
 		deadline: Option<Timestamp>,
 	) -> Result<usize, HttpError> {
 		(&mut **self).http_response_read_body(request_id, buffer, deadline)
+	}
+
+	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
+		(&mut **self).ipfs_request_start(request)
+	}
+
+	fn ipfs_response_wait(
+		&mut self,
+		ids: &[IpfsRequestId],
+		deadline: Option<Timestamp>,
+	) -> Vec<IpfsRequestStatus> {
+		(&mut **self).ipfs_response_wait(ids, deadline)
 	}
 
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {
@@ -608,6 +778,20 @@ impl<T: Externalities> Externalities for LimitedExternalities<T> {
 	) -> Result<usize, HttpError> {
 		self.check(Capabilities::HTTP, "http_response_read_body");
 		self.externalities.http_response_read_body(request_id, buffer, deadline)
+	}
+
+	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
+		self.check(Capabilities::IPFS, "ipfs_request_start");
+		self.externalities.ipfs_request_start(request)
+	}
+
+	fn ipfs_response_wait(
+		&mut self,
+		ids: &[IpfsRequestId],
+		deadline: Option<Timestamp>,
+	) -> Vec<IpfsRequestStatus> {
+		self.check(Capabilities::IPFS, "ipfs_response_wait");
+		self.externalities.ipfs_response_wait(ids, deadline)
 	}
 
 	fn set_authorized_nodes(&mut self, nodes: Vec<OpaquePeerId>, authorized_only: bool) {

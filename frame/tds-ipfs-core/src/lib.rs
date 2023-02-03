@@ -1,8 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/v3/runtime/frame>
+//! Pallet provides all core functionality for IPFS node communication and invoking functionality.
+//!
+//! Such functionality can be used from other pallets by invoking referring IpfsCommand enum
+//! which can be passed to the pallet using deposit_event method.
+//!
+//! See tds-ipfs/src/lib.rs for examples
+//!
+//! Credits goes to:
+//!
+//! https://github.com/WunderbarNetwork/substrate
+//! https://github.com/rs-ipfs/substrate/
+//!
 
 pub use pallet::*;
 
@@ -28,11 +37,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 use frame_support::traits::Randomness;
-
 
 /** Create a "unique" id for each command
 
@@ -57,7 +62,7 @@ pub fn ocw_process_command<T: Config>(
   command_request: CommandRequest<T>,
   persistence_key: &[u8; 24],
 ) -> Result<Vec<IpfsResponse>, Error<T>> {
-  // TODO: make the lock optional: Not all requests may need a lock
+
   let acquire_lock = acquire_command_request_lock::<T>(block_number, &command_request);
 
   match acquire_lock {
@@ -65,7 +70,7 @@ pub fn ocw_process_command<T: Config>(
       let mut result = Vec::<IpfsResponse>::new();
 
       for command in command_request.clone().ipfs_commands {
-        match command {
+        let command_result = match command {
           IpfsCommand::ConnectTo(ref address) => {
             match ipfs_request::<T>(IpfsRequest::Connect(OpaqueMultiaddr(
               address.clone(),
@@ -120,6 +125,7 @@ pub fn ocw_process_command<T: Config>(
               _ => Err(Error::<T>::RequestFailed),
             }
           },
+
           IpfsCommand::FindPeer(ref peer_id) => {
             match ipfs_request::<T>(IpfsRequest::FindPeer(peer_id.clone())) {
               Ok(IpfsResponse::FindPeer(addresses)) =>
@@ -127,6 +133,7 @@ pub fn ocw_process_command<T: Config>(
               _ => Err(Error::<T>::RequestFailed),
             }
           },
+
           IpfsCommand::GetProviders(ref cid) => {
             match ipfs_request::<T>(IpfsRequest::GetProviders(cid.clone())) {
               Ok(IpfsResponse::GetProviders(peer_ids)) =>
@@ -135,40 +142,43 @@ pub fn ocw_process_command<T: Config>(
             }
           },
         };
+
+		match command_result {
+    		Ok(_) => log::debug!("Command successfully processed: {:?}", command),
+   			Err(_) => log::debug!("Command failed: {:?}", command),
+		}
       }
 
-      processed_commands::<T>(&command_request, persistence_key);
+      match processed_commands::<T>(&command_request, persistence_key) {
+        Ok(_) => log::debug!("IPFS command request successfully processed"),
+   		Err(_) => log::debug!("IPFS command request failed"),
+      }
 
       Ok(result)
     },
     _ => Err(Error::<T>::FailedToAcquireLock),
   }
 }
+
 /** Send a request to the local IPFS node; Can only be called in an offchain worker. * */
 pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Error<T>> {
-  let ipfs_request =
-    ipfs::PendingRequest::new(request).map_err(|_| Error::CannotCreateRequest)?;
+  let ipfs_request = ipfs::PendingRequest::new(request)
+                                        .map_err(|_| Error::CannotCreateRequest)?;
 
-   info!("ipfs_request {:?}", ipfs_request);
-
-  // TODO: make milliseconds a const
+  let duration = 1_200;
   ipfs_request
-    .try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(1_200))))
+    .try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(duration))))
     .map_err(|_| Error::<T>::RequestTimeout)?
     .map(|req| req.response)
     .map_err(|_error| Error::<T>::RequestFailed)
 }
 
 /** Parse Each ipfs response resulting in bytes to be used in callback
-  - If multiple responses are found the last response with bytes is returned. ( TODO: handle multiple responses )
+  - If multiple responses are found the last response with bytes is returned.
 */
 pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u8> {
   let mut callback_response = Vec::<u8>::new();
 
-  // TODO: Return a complete data response for each of the processed commands.
-  //  - possibly double parsing of the response from the client,
-  // 		however the abstraction could be better for other uses?
-  // 	- Return multiple responses worth of data.
   for response in responses.clone() {
     match response {
       IpfsResponse::CatBytes(bytes_received) =>
@@ -192,7 +202,6 @@ pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u
       IpfsResponse::Success => {},
     }
   }
-
   callback_response
 }
 

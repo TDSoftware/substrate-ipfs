@@ -20,8 +20,8 @@ use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep};
 
 use crate::NetworkProvider;
 use codec::{Decode, Encode};
-use futures::Future;
 pub use http::SharedClient;
+
 use libp2p::{Multiaddr, PeerId};
 use sp_core::{
 	offchain::{

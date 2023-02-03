@@ -313,6 +313,7 @@ pub struct TaskManager {
 	children: Vec<TaskManager>,
 	/// The registry of all running tasks.
 	task_registry: TaskRegistry,
+	/// IPFS runtime for request/response based communication with the IPFS nodes
 	pub ipfs_rt: std::sync::Arc<parking_lot::Mutex<tokio::runtime::Runtime>>
 }
 

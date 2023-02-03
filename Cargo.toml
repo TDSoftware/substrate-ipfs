@@ -168,7 +168,7 @@ members = [
 	"frame/vesting",
 	"frame/whitelist",
 	"pallets/template",
-	"pallets/ipfs-core",
+	"pallets/tds-ipfs-core",
 	"pallets/ipfs-exmaple",
 	"primitives/api",
 	"primitives/api/proc-macro",

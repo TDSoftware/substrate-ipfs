@@ -1,5 +1,5 @@
 [package]
-name = 'pallet-ipfs-core'
+name = 'pallet-tds-ipfs-core'
 version = "4.0.0-dev"
 description = "FRAME pallet provides scaffolding for interacting with an IPFS ocw"
 authors = ['Dan Henton <https://github.com/danhenton>']

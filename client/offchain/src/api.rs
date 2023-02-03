@@ -441,12 +441,21 @@ mod tests {
 		}
 	}
 
-	fn offchain_api() -> (Api, AsyncApi) {
+	fn offchain_api() -> Api {
 		sp_tracing::try_init_simple();
 		let mock = Arc::new(TestNetwork());
 		let shared_client = SharedClient::new();
 
-		AsyncApi::new(mock, false, shared_client)
+		let options = ::ipfs::IpfsOptions::Default::default();
+		let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+
+		let ipfs_node = tokio_runtime.block_on(async move {
+			let (ipfs, fut) = ::ipfs::UninitializedIpfs::new(options).await.start().await.unwrap();
+			tokio::task::spawn(fut);
+			ipfs
+		});
+
+		AsyncApi::new(mock, ipfs_node, false, shared_client).0
 	}
 
 	fn offchain_db() -> Db<LocalStorage> {
@@ -455,7 +464,7 @@ mod tests {
 
 	#[test]
 	fn should_get_timestamp() {
-		let mut api = offchain_api().0;
+		let mut api = offchain_api();
 
 		// Get timestamp from std.
 		let now = SystemTime::now();
@@ -476,7 +485,7 @@ mod tests {
 
 	#[test]
 	fn should_sleep() {
-		let mut api = offchain_api().0;
+		let mut api = offchain_api();
 
 		// Arrange.
 		let now = api.timestamp();
@@ -561,7 +570,7 @@ mod tests {
 	#[test]
 	fn should_get_random_seed() {
 		// given
-		let mut api = offchain_api().0;
+		let mut api = offchain_api();
 		let seed = api.random_seed();
 		// then
 		assert_ne!(seed, [0; 32]);

@@ -107,7 +107,6 @@ use sp_runtime::generic::Era;
 // Import pallets
 pub use pallet_tds_ipfs_core;
 pub use pallet_tds_ipfs;
-pub use pallet_template;
 
 /// Generated voter bag information.
 mod voter_bags;
@@ -1603,10 +1602,6 @@ impl pallet_transaction_storage::Config for Runtime {
 		ConstU32<{ pallet_transaction_storage::DEFAULT_MAX_TRANSACTION_SIZE }>;
 }
 
-impl pallet_template::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-}
-
 impl pallet_tds_ipfs_core::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type IpfsRandomness = RandomnessCollectiveFlip;
@@ -1778,7 +1773,6 @@ construct_runtime!(
 		RankedCollective: pallet_ranked_collective,
 		FastUnstake: pallet_fast_unstake,
 		MessageQueue: pallet_message_queue,
-		Template: pallet_template,
 		IpfsCore: pallet_tds_ipfs_core,
 		Ipfs: pallet_tds_ipfs,
 	}
@@ -2261,7 +2255,6 @@ impl_runtime_apis! {
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
-			list_benchmark!(list, extra, pallet_template, Template);
 			list_benchmark!(list, extra, pallet_tds_ipfs_core, IpfsCore);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -2303,7 +2296,6 @@ impl_runtime_apis! {
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
 			add_benchmarks!(params, batches);
-			add_benchmark!(params, batches, pallet_template, Template);
 			add_benchmark!(params, batches, pallet_ipfs_core, IpfsCore);
 			add_benchmark!(params, batches, pallet_tds_ipfs, TDSIpfs);
 			Ok(batches)

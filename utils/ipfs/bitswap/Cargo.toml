@@ -1,0 +1,25 @@
+[package]
+authors = ["Rust-IPFS contributors"]
+description = "Bitswap protocol implementation used in ipfs"
+edition = "2018"
+name = "ipfs-bitswap"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rs-ipfs/rust-ipfs"
+
+[build-dependencies]
+prost-build = { default-features = false, version = "0.8" }
+
+[dependencies]
+cid = { default-features = false, version = "0.5" }
+fnv = { default-features = false, version = "1.0" }
+futures = { default-features = false, version = "0.3" }
+hash_hasher = "2.0.3"
+libp2p-core = { default-features = false, version = "0.32" }
+libp2p-swarm = { default-features = false, version = "0.34" }
+multihash = { default-features = false, version = "0.11" }
+prost = { default-features = false, version = "0.9" }
+thiserror = { default-features = false, version = "1.0" }
+tokio = { default-features = false, version = "1", features = ["rt"] }
+tracing = { default-features = false, version = "0.1" }
+unsigned-varint = { default-features = false, version = "0.3" }

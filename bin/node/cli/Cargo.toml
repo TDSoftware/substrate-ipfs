@@ -43,7 +43,7 @@ jsonrpsee = { version = "0.16.2", features = ["server"] }
 futures = "0.3.21"
 log = "0.4.17"
 rand = "0.8"
-ipfs = { git = "https://github.com/rs-ipfs/rust-ipfs" }
+ipfs = { path = "../../../utils/ipfs" }
 
 # primitives
 sp-authority-discovery = { version = "4.0.0-dev", path = "../../../primitives/authority-discovery" }

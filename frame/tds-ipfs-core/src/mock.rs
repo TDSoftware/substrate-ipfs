@@ -1,12 +1,13 @@
-use crate as pallet_tds_ipfs;
+use crate as pallet_tds_ipfs_core;
 use frame_support::parameter_types;
-use frame_system as system;
 
 use sp_core::H256;
 use sp_runtime::{
   testing::Header,
   traits::{BlakeTwo256, IdentityLookup},
 };
+
+use crate::{generate_id};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -19,8 +20,8 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic,
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    TDSIpfs: pallet_tds_ipfs::{Pallet, Call, Storage, Event<T>},
-	RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+    TDSIpfsCore: pallet_tds_ipfs_core::{Pallet, Call, Storage, Event<T>},
+	RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
   }
 );
 
@@ -29,7 +30,7 @@ parameter_types! {
   pub const SS58Prefix: u8 = 42;
 }
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
   type BaseCallFilter = frame_support::traits::Everything;
   type BlockWeights = ();
   type BlockLength = ();
@@ -59,12 +60,19 @@ impl system::Config for Test {
 
 impl pallet_randomness_collective_flip::Config for Test {}
 
-impl pallet_tds_ipfs::Config for Test {
+impl pallet_tds_ipfs_core::Config for Test {
   type RuntimeEvent = RuntimeEvent;
   type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-  system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+}
+
+pub fn test_generate_id() ->  [u8; 32] {
+	//config.
+	let pair = generate_id::<Test>();
+	println!("Pair: {:?}", pair);
+	pair
 }

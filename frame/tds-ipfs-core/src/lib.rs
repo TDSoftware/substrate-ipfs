@@ -205,7 +205,7 @@ pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u
   callback_response
 }
 
-/** Convert a vector of addresses into a comma seperated utf8 safe vector of bytes */
+/** Convert a vector of addresses into a comma separated utf8 safe vector of bytes */
 pub fn addresses_to_utf8_safe_bytes(addresses: Vec<OpaqueMultiaddr>) -> Vec<u8> {
   multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
 }

@@ -1,12 +1,12 @@
 // TODO: TDS comment in and try to fix compiler errors
 
-// use crate::{mock::*, Error};
-// use frame_support::{assert_noop, assert_ok};
-// use frame_system::Origin;
-// use log::info;
-// use std::str;
+use crate::{mock::*, Error};
+use frame_support::{assert_noop, assert_ok};
+use frame_system::Origin;
+use log::info;
+use std::str;
 
-// /*#[test]
+// #[test]
 // fn it_works_for_default_value() {
 //   new_test_ext().execute_with(|| {
 //     // Dispatch a signed extrinsic.
@@ -15,7 +15,7 @@
 //     assert_eq!(TemplateModule::something(), Some(42));
 //   });
 // }
-// */
+
 
 // #[test]
 // fn it_expects_ipfs_connect_to_add_a_connection() {
@@ -82,28 +82,28 @@
 // */
 
 
-// // TODO: TDS Commend in and fix DataCommand import issue
 
-// // #[test]
 
-// // fn it_expects_ipfs_add_bytes_to_store_bytes() {
-// //   let message = "Hello world";
-// //   let message_as_bytes = message.as_bytes().to_vec();
+// #[test]
 
-// //   new_test_ext().execute_with(|| {
-// //     assert_ok!(RsIpfs::ipfs_add_bytes(Origin::signed(1), message_as_bytes));
-// //     let queue = RsIpfs::data_queue().unwrap();
-// //     assert_eq!(queue.len(), 1);
+// fn it_expects_ipfs_add_bytes_to_store_bytes() {
+//   let message = "Hello world";
+//   let message_as_bytes = message.as_bytes().to_vec();
 
-// //     let stored_bytes = queue[0].clone();
+//   new_test_ext().execute_with(|| {
+//     assert_ok!(RsIpfs::ipfs_add_bytes(Origin::signed(1), message_as_bytes));
+//     let queue = RsIpfs::data_queue().unwrap();
+//     assert_eq!(queue.len(), 1);
 
-// //     match &stored_bytes {
-// //       DataCommand::AddBytes(value) => {
-// //         assert_eq!(str::from_utf8(value).unwrap(), message);
-// //       },
-// //       _ => {
-// //         panic!("unexpected data type in DataQueue")
-// //       },
-// //     }
-// //   })
-// // }
+//     let stored_bytes = queue[0].clone();
+
+//     match &stored_bytes {
+//       DataCommand::AddBytes(value) => {
+//         assert_eq!(str::from_utf8(value).unwrap(), message);
+//       },
+//       _ => {
+//         panic!("unexpected data type in DataQueue")
+//       },
+//     }
+//   })
+// }

@@ -70,9 +70,14 @@ pub struct OffchainWorkerOptions {
 	///
 	/// If not enabled, any http request will panic.
 	pub enable_http_requests: bool,
+
+	/// Enable or disable IPFS requests from offchain workers
+	///
+	/// If not enabled, any ipfs request will panic.
 	pub enable_ipfs_requests: bool,
 }
 
+#[allow(dead_code)]
 /// An offchain workers manager.
 pub struct OffchainWorkers<Client, Block: traits::Block> {
 	client: Arc<Client>,
@@ -81,10 +86,12 @@ pub struct OffchainWorkers<Client, Block: traits::Block> {
 	shared_http_client: api::SharedClient,
 	enable_http: bool,
 	ipfs_node: ipfs::Ipfs<ipfs::Types>,
-	enable_ipfs: bool,
+	enable_ipfs: bool, // unsued, but maybe useful for later
 }
 
 impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
+	/// Creates new [`OffchainWorkers`].
+	///
 	pub fn new(client: Arc<Client>, ipfs_rt: Arc<Mutex<tokio::runtime::Runtime>>) -> Self {
 		let (ipfs_node, ipfs_info) = std::thread::spawn(move || {
 			let ipfs_rt = ipfs_rt.lock();
@@ -415,9 +422,10 @@ mod tests {
 		));
 		let network = Arc::new(TestNetwork());
 		let header = client.header(client.chain_info().genesis_hash).unwrap().unwrap();
+		let mut ipfs_rt = Arc::new(Mutex::new(tokio::runtime::Runtime::new().unwrap()));
 
 		// when
-		let offchain = OffchainWorkers::new(client);
+		let offchain = OffchainWorkers::new(client, ipfs_rt);
 		futures::executor::block_on(offchain.on_block_imported(&header, network, false));
 
 		// then

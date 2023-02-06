@@ -278,7 +278,7 @@ bitflags::bitflags! {
 		const NODE_AUTHORIZATION = 0b0000_1000_0000;
 		/// Access time related functionality
 		const TIME = 0b0001_0000_0000;
-		//Access to IPFS node.
+		/// Access to IPFS node.
 		const IPFS = 0b0000_1111_1111;
 	}
 }
@@ -572,6 +572,17 @@ pub trait Externalities: Send {
 	/// Initiates an IPFS request.
 	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()>;
 
+	/// Block and wait for the IPFS responses for given IPFS requests.
+	///
+	/// Returns a vector of request statuses (the len is the same as ids).
+	/// Note that if deadline is not provided the method will block indefinitely,
+	/// otherwise unready responses will produce `DeadlineReached` status.
+	///
+	/// If a response returns an `IoError`, it is then considered destroyed.
+	/// Its id is then invalid.
+	///
+	/// Passing `None` as deadline blocks forever.
+	///
 	fn ipfs_response_wait(
 		&mut self,
 		ids: &[IpfsRequestId],

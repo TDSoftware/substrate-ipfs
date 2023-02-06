@@ -422,7 +422,7 @@ mod tests {
 		));
 		let network = Arc::new(TestNetwork());
 		let header = client.header(client.chain_info().genesis_hash).unwrap().unwrap();
-		let mut ipfs_rt = Arc::new(Mutex::new(tokio::runtime::Runtime::new().unwrap()));
+		let ipfs_rt = Arc::new(Mutex::new(tokio::runtime::Runtime::new().unwrap()));
 
 		// when
 		let offchain = OffchainWorkers::new(client, ipfs_rt);

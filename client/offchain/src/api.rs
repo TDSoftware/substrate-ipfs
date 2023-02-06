@@ -16,11 +16,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep, borrow::{Borrow, BorrowMut}};
+use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep, borrow::{BorrowMut}};
 
 use crate::NetworkProvider;
 use codec::{Decode, Encode};
-use futures::Future;
 pub use http::SharedClient;
 
 use libp2p::{Multiaddr, PeerId};
@@ -343,20 +342,6 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 
 		(api, async_api)
 	}
-	/// Creates new Offchain extensions API implementation and the asynchronous processing part but without IPFS Node.
-	pub fn http(
-		network_provider: Arc<dyn NetworkProvider + Send + Sync>,
-		is_validator: bool,
-		shared_http_client: SharedClient,
-	) -> (Api, Self) {
-		let (http_api, http_worker) = http::http(shared_http_client);
-
-		let api = Api { network_provider, is_validator, http: http_api, ipfs: None };
-
-		let async_api = Self { http: Some(http_worker), ipfs: None };
-
-		(api, async_api)
-	}
 
 	/// Run a processing task for the API
 	pub fn process_http(self) -> http::HttpWorker {
@@ -372,15 +357,8 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 	}
 }
 
-impl AsyncApi {
-
-}
 
 #[cfg(test)]
-/*
-impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
-
-}*/
 
 mod tests {
 	use super::*;
@@ -394,6 +372,24 @@ mod tests {
 	use sc_peerset::ReputationChange;
 	use sp_core::offchain::{DbExternalities, Externalities};
 	use std::time::SystemTime;
+	use ::ipfs::TestTypes;
+
+	impl AsyncApi<TestTypes> {
+		/// Creates new Offchain extensions API implementation and the asynchronous processing part but without IPFS Node.
+		pub fn http(
+			network_provider: Arc<dyn NetworkProvider + Send + Sync>,
+			is_validator: bool,
+			shared_http_client: SharedClient,
+		) -> (Api, Self) {
+			let (http_api, http_worker) = http::http(shared_http_client);
+
+			let api = Api { network_provider, is_validator, http: http_api, ipfs: None };
+
+			let async_api = Self { http: Some(http_worker), ipfs: None };
+
+			(api, async_api)
+		}
+	}
 
 	pub(super) struct TestNetwork();
 
@@ -486,7 +482,7 @@ mod tests {
 		let mock = Arc::new(TestNetwork());
 		let shared_client = SharedClient::new();
 
-		AsyncApi::newTestAPI(mock, false, shared_client).0
+		AsyncApi::http(mock, false, shared_client).0
 	}
 
 	fn offchain_db() -> Db<LocalStorage> {

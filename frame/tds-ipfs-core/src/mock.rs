@@ -1,13 +1,11 @@
-use crate as pallet_tds_ipfs_core;
-use frame_support::parameter_types;
+use crate::{self as pallet_tds_ipfs_core, multiple_bytes_to_utf8_safe_bytes, generate_id, addresses_to_utf8_safe_bytes};
+use frame_support::{parameter_types};
 
 use sp_core::H256;
 use sp_runtime::{
   testing::Header,
-  traits::{BlakeTwo256, IdentityLookup},
+  traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr},
 };
-
-use crate::{generate_id};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -65,14 +63,42 @@ impl pallet_tds_ipfs_core::Config for Test {
   type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+#[derive(Default)]
+pub struct ExtBuilder {}
+
+impl ExtBuilder {
+	pub fn build(self) -> sp_io::TestExternalities {
+		let storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+		let mut ext = sp_io::TestExternalities::new(storage);
+
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
+
+	pub fn build_and_execute(self, test: impl FnOnce() -> ()) {
+		self.build().execute_with(|| {
+			test();
+		})
+	}
 }
 
-pub fn test_generate_id() ->  [u8; 32] {
-	//config.
+pub fn mock_generate_id() ->  [u8; 32] {
 	let pair = generate_id::<Test>();
-	println!("Pair: {:?}", pair);
 	pair
+}
+
+pub fn mock_addresses_to_utf8_safe_bytes(address: &str) -> Vec<u8> {
+	let bytes = address.as_bytes().to_vec();
+	let mut vec = Vec::<OpaqueMultiaddr>::new();
+	let first = OpaqueMultiaddr::new(bytes);
+
+	vec.push(first);
+	let result = addresses_to_utf8_safe_bytes(vec);
+
+	result
+}
+
+pub fn mock_multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
+	let result = multiple_bytes_to_utf8_safe_bytes(response);
+	result
 }

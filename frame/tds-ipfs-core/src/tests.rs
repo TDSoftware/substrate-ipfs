@@ -1,26 +1,37 @@
-use crate::{self as pallet_tds_ipfs_core, mock};
-use crate::{mock::*, Error, generate_id};
-use frame_support::{assert_noop, assert_ok};
-use log::info;
-use pallet_tds_ipfs_core::Config;
-use std::str;
-
+use crate::{mock::*};
 
 #[test]
-fn it_works_for_default_value() {
-	new_test_ext().execute_with(|| {
-		let test = test_generate_id();
+fn test_generate_id() {
+	ExtBuilder::default().build_and_execute(|| {
+		let test = mock_generate_id();
 		assert!(test.len() > 0);
 	});
-
-
 }
-// fn it_works_for_default_value() {
-//   new_test_ext().execute_with(|| {
-//     // Dispatch a signed extrinsic.
-//     assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-//     // Read pallet storage and assert an expected result.
-//     assert_eq!(TemplateModule::something(), Some(42));
-//   });
-// }
 
+#[test]
+fn test_addresses_to_utf8_safe_bytes() {
+	ExtBuilder::default().build_and_execute(|| {
+		let result = mock_addresses_to_utf8_safe_bytes("test/bytes/öäüß");
+		log::debug!("{:?}", result);
+
+		assert!(result.len() > 0);
+		let data = [116, 101, 115, 116, 47, 98, 121, 116, 101, 115, 47, 195, 182, 195, 164, 195, 188, 195, 159].to_vec();
+		assert_eq!(result, data);
+
+	});
+}
+
+#[test]
+fn test_multiple_bytes_to_utf8_safe_bytes() {
+	ExtBuilder::default().build_and_execute(|| {
+		let mut test_data = Vec::<Vec<u8>>::new();
+		test_data.push("Test 1".as_bytes().to_vec());
+		test_data.push("2 tseT".as_bytes().to_vec());
+
+		let result = mock_multiple_bytes_to_utf8_safe_bytes(test_data);
+		log::debug!("{:?}", result);
+
+		assert!(result.len() > 0);
+		assert_eq!(result, [84, 101, 115, 116, 32, 49, 44, 32, 50, 32, 116, 115, 101, 84]);
+	});
+}

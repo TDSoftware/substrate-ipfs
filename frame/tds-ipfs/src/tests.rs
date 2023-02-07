@@ -17,16 +17,23 @@ use std::str;
 // }
 
 
-// #[test]
-// fn it_expects_ipfs_connect_to_add_a_connection() {
-//   let localhost = vec![127, 0, 0, 1];
+#[test]
+fn it_expects_ipfs_connect_to_add_a_connection() {
 
-//   new_test_ext().execute_with(|| {
-//     assert_ok!(RsIpfs::ipfs_connect(Origin::signed(1), localhost));
+	// TODO: implement correctly
+
+//   ExtBuilder::default().build_and_execute(|| {
+// 	let localhost = vec![127, 0, 0, 1];
+
+
+
+// 	assert_ok!(Ipfs::connect(RuntimeOrigin::signed(1), localhost));
 //     // println!("Value in commands: {:?}", RsIpfs::commands());
-//     assert_eq!(RsIpfs::commands().unwrap().len(), 1);
+//     assert_eq!(Ipfs::commands().unwrap().len(), 1);
 //   });
-// }
+}
+
+
 // #[test]
 // fn it_expects_ipfs_connect_to_have_multiple_connections() {
 //   let localhost = vec![127, 0, 0, 1];

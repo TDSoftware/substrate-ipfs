@@ -373,6 +373,7 @@ pub fn testnet_genesis(
 			..Default::default()
 		},
 		ipfs: Default::default(),
+		ipfs_core: Default::default(),
 	}
 }
 

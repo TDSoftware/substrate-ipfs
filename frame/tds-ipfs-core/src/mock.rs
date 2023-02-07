@@ -55,7 +55,6 @@ impl frame_system::Config for Test {
   type OnSetCode = ();
 }
 
-
 impl pallet_randomness_collective_flip::Config for Test {}
 
 impl pallet_tds_ipfs_core::Config for Test {

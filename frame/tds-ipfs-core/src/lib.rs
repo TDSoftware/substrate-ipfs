@@ -372,4 +372,24 @@ pub mod pallet {
   // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
   #[pallet::call]
   impl<T: Config> Pallet<T> {}
+
+  #[pallet::genesis_config]
+  pub struct GenesisConfig<T: Config> {
+    pub commands: Vec<CommandRequest<T>>,
+  }
+
+  #[cfg(feature = "std")]
+  impl<T: Config> Default for GenesisConfig<T> {
+    fn default() -> GenesisConfig<T> {
+      GenesisConfig { commands: Vec::<CommandRequest<T>>::new() }
+    }
+  }
+
+  #[pallet::genesis_build]
+  impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    fn build(&self) {
+      // TODO: Check if needed
+      //commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
+    }
+  }
 }

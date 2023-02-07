@@ -62,7 +62,6 @@ pub mod pallet {
 
   use sp_core::crypto::KeyTypeId;
 
-
   pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
   const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
 

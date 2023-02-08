@@ -300,7 +300,7 @@ pub enum IpfsRequest {
 	/// Get the list of node's peerIds and addresses.
 	Addrs,
 	/// Add the given bytes to the IPFS repo.
-	AddBytes(Vec<u8>),
+	AddBytes(Vec<u8>, u8),
 	/// Add an address to listen on.
 	AddListeningAddr(OpaqueMultiaddr),
 	/// Get the bitswap stats of the node.

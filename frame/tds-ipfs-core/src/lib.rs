@@ -89,8 +89,8 @@ pub fn ocw_process_command<T: Config>(
             }
           },
 
-          IpfsCommand::AddBytes(ref bytes_to_add) => {
-            match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add.clone())) {
+          IpfsCommand::AddBytes(ref bytes_to_add, ref version) => {
+            match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add.clone(), version.clone())) {
               Ok(IpfsResponse::AddBytes(cid)) =>
                 Ok(result.push(IpfsResponse::AddBytes(cid))),
               _ => Err(Error::<T>::RequestFailed),
@@ -322,7 +322,7 @@ pub mod pallet {
     DisconnectFrom(Vec<u8>),
 
     // Data Commands
-    AddBytes(Vec<u8>),
+    AddBytes(Vec<u8>, u8),
     CatBytes(Vec<u8>),
     InsertPin(Vec<u8>),
     RemoveBlock(Vec<u8>),

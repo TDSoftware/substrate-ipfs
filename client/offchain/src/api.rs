@@ -343,7 +343,9 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 		(api, async_api)
 	}
 
+	#[allow(dead_code)]
 	/// Run a processing task for the API
+	/// Methiod is mainly used for testing, when only http is required
 	pub fn process_http(self) -> http::HttpWorker {
 		self.http.expect("`process` is only called once; qed")
 	}

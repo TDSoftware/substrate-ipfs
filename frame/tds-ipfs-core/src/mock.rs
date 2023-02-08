@@ -150,7 +150,7 @@ pub fn mock_disconnect_from_localhost() -> Result<IpfsResponse, Error<Test>> {
 
 pub fn mock_add_bytes(data: &str) -> Result<IpfsResponse, Error<Test>> {
 	let data_as_bytes = data.as_bytes().to_vec();
-	let request = IpfsRequest::AddBytes(data_as_bytes);
+	let request = IpfsRequest::AddBytes(data_as_bytes, 1);
 
 	ipfs_request(request)
 }

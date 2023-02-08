@@ -34,7 +34,7 @@ use std::{
 };
 
 // wasm-friendly implementations of Ipfs::{add, get}
-async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>) -> Result<ipfs::Cid, ipfs::Error> {
+async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<ipfs::Cid, ipfs::Error> {
 	let dag = ipfs.dag();
 
 	let links: Vec<Ipld> = vec![];
@@ -42,10 +42,6 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>) -> Result<ipfs::C
 	pb_node.insert("Data".to_string(), data.into());
 	pb_node.insert("Links".to_string(), links.into());
 
-	// TODO: https://docs.rs/cid/0.7.0/cid, https://docs.rs/cid/0.5.1/src/cid/codec.rs.html#9-11 https://docs.rs/ipfs/0.2.1/ipfs/type.Cid.html
-	// TODO: pass version through function
-
-	let version = 0;
 	let codec = if version == 0 {Codec::DagProtobuf} else {Codec::DagCBOR};
 
 	dag.put(pb_node.into(), codec).await
@@ -402,8 +398,8 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 ) -> Result<IpfsNativeResponse, ipfs::Error> {
 	match request {
 		IpfsRequest::Addrs => Ok(IpfsNativeResponse::Addrs(ipfs.addrs().await?)),
-		IpfsRequest::AddBytes(data) =>
-			Ok(IpfsNativeResponse::AddBytes(ipfs_add(&ipfs, data).await?)),
+		IpfsRequest::AddBytes(data, version) =>
+			Ok(IpfsNativeResponse::AddBytes(ipfs_add(&ipfs, data, version).await?)),
 		IpfsRequest::AddListeningAddr(addr) => {
 			let ret = ipfs.add_listening_address(str::from_utf8(&addr.0)?.parse()?).await?;
 			Ok(IpfsNativeResponse::AddListeningAddr(ret))

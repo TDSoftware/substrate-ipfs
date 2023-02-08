@@ -345,7 +345,7 @@ impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
 
 	#[allow(dead_code)]
 	/// Run a processing task for the API
-	/// Methiod is mainly used for testing, when only http is required
+	/// Method is mainly used for testing, when only http is required
 	pub fn process_http(self) -> http::HttpWorker {
 		self.http.expect("`process` is only called once; qed")
 	}

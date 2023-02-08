@@ -1,3 +1,4 @@
+use frame_support::assert_ok;
 use crate::{mock::*};
 
 #[test]
@@ -33,5 +34,49 @@ fn test_multiple_bytes_to_utf8_safe_bytes() {
 
 		assert!(result.len() > 0);
 		assert_eq!(result, [84, 101, 115, 116, 32, 49, 44, 32, 50, 32, 116, 115, 101, 84]);
+	});
+}
+
+#[test]
+fn test_connect() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let result = mock_connect_to_localhost();
+		assert_ok!(result);
+	});
+}
+
+#[test]
+fn test_disconnect() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let mut result = mock_connect_to_localhost();
+		assert_ok!(result);
+
+		result = mock_disconnect_from_localhost();
+		println!("{:?}", result);
+		assert_ok!(result);
+	});
+}
+
+#[test]
+fn test_add_bytes() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let mut result = mock_connect_to_localhost();
+		assert_ok!(result);
+
+		result = mock_add_bytes("Hello IPFS");
+		println!("{:?}", &result);
+		assert_ok!(&result);
+	});
+}
+
+#[test]
+fn test_cat_bytes() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let mut result = mock_connect_to_localhost();
+		assert_ok!(result);
+
+		result = mock_cat_bytes("QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR");
+		println!("{:?}", &result);
+		assert_ok!(&result);
 	});
 }

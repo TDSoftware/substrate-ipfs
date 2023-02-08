@@ -30,6 +30,7 @@ log = { default-features = false, version = "0.4" }
 
 [dev-dependencies]
 pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, path = "../randomness-collective-flip" }
+sp-keystore = { version = "0.13.0", path = "../../primitives/keystore" }
 
 [features]
 default = ['std']

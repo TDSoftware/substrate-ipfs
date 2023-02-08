@@ -1,10 +1,22 @@
-use crate::{self as pallet_tds_ipfs_core, multiple_bytes_to_utf8_safe_bytes, generate_id, addresses_to_utf8_safe_bytes};
+use crate::{self as pallet_tds_ipfs_core,
+	multiple_bytes_to_utf8_safe_bytes,
+	generate_id,
+	addresses_to_utf8_safe_bytes,
+	ipfs_request,
+	IpfsRequest,
+	IpfsResponse,
+	Error};
+
 use frame_support::{parameter_types};
 
-use sp_core::H256;
 use sp_runtime::{
   testing::Header,
   traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr},
+};
+
+use sp_core::{
+	offchain::{testing, OffchainWorkerExt, TransactionPoolExt},
+	H256,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -79,6 +91,24 @@ impl ExtBuilder {
 			test();
 		})
 	}
+
+	pub fn build_and_execute_for_offchain(self, test: impl FnOnce() -> ()) {
+		self.build_for_offchain().execute_with(|| {
+			test();
+		})
+	}
+
+	pub fn build_for_offchain(self) -> sp_io::TestExternalities {
+		let (offchain, _ ) = testing::TestOffchainExt::new();
+		let (pool, _ ) = testing::TestTransactionPoolExt::new();
+
+		let mut test_externalities = sp_io::TestExternalities::default();
+		test_externalities.register_extension(OffchainWorkerExt::new(offchain));
+		test_externalities.register_extension(TransactionPoolExt::new(pool));
+
+		test_externalities
+	}
+
 }
 
 pub fn mock_generate_id() ->  [u8; 32] {
@@ -100,4 +130,34 @@ pub fn mock_addresses_to_utf8_safe_bytes(address: &str) -> Vec<u8> {
 pub fn mock_multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
 	let result = multiple_bytes_to_utf8_safe_bytes(response);
 	result
+}
+
+pub fn mock_connect_to_localhost() -> Result<IpfsResponse, Error<Test>> {
+	let localhost = vec![127, 0, 0, 1];
+	let localhost_add = OpaqueMultiaddr::new(localhost);
+	let request = IpfsRequest::Connect(localhost_add);
+
+	ipfs_request(request)
+}
+
+pub fn mock_disconnect_from_localhost() -> Result<IpfsResponse, Error<Test>> {
+	let localhost = vec![127, 0, 0, 1];
+	let localhost_add = OpaqueMultiaddr::new(localhost);
+	let request = IpfsRequest::Disconnect(localhost_add);
+
+	ipfs_request(request)
+}
+
+pub fn mock_add_bytes(data: &str) -> Result<IpfsResponse, Error<Test>> {
+	let data_as_bytes = data.as_bytes().to_vec();
+	let request = IpfsRequest::AddBytes(data_as_bytes);
+
+	ipfs_request(request)
+}
+
+pub fn mock_cat_bytes(cid: &str) -> Result<IpfsResponse, Error<Test>> {
+	let cid_as_bytes = cid.as_bytes().to_vec();
+	let request = IpfsRequest::CatBytes(cid_as_bytes);
+
+	ipfs_request(request)
 }

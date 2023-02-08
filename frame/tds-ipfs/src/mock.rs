@@ -1,18 +1,11 @@
-// // TODO: TDS comment in and try to fix compiler errors
-
-
 #![cfg(test)]
-
 use crate::{self as pallet_tds_ipfs};
 use crate::*;
-
-use std::sync::Arc;
 
 use frame_support::{
 	parameter_types,
 };
 use sp_core::{
-	offchain::{testing, OffchainWorkerExt, TransactionPoolExt},
 	sr25519::Signature,
 	H256,
 };
@@ -22,8 +15,6 @@ use sp_runtime::traits::{Verify, BlakeTwo256, IdentityLookup, IdentifyAccount};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-
-use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
 
  // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -124,43 +115,3 @@ impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-#[derive(Default)]
-pub struct ExtBuilder {}
-
-impl ExtBuilder {
-	pub fn build(self) -> sp_io::TestExternalities {
-		let storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-		let mut ext = sp_io::TestExternalities::new(storage);
-
-		ext.execute_with(|| System::set_block_number(1));
-		ext
-	}
-
-	pub fn build_and_execute(self, test: impl FnOnce() -> ()) {
-		self.build().execute_with(|| {
-			test();
-		})
-	}
-
-	// TODO: use this as executable
-	pub fn test() {
-		// const PHRASE: &str =
-		// "news slush supreme milk chapter athlete soap sausage put clutch what kitten";
-
-		// let (offchain, offchain_state) = testing::TestOffchainExt::new();
-		// let (pool, pool_state) = testing::TestTransactionPoolExt::new();
-
-		// let keystore = KeyStore::new();
-		// SyncCryptoStore::sr25519_generate_new(
-		// 	&keystore,
-		// 	crate::crypto::Public::ID,
-		// 	Some(&format!("{}/hunter1", PHRASE)),
-		// )
-		// .unwrap();
-
-		// let mut t = sp_io::TestExternalities::default();
-		// t.register_extension(OffchainWorkerExt::new(offchain));
-		// t.register_extension(TransactionPoolExt::new(pool));
-		// t.register_extension(KeystoreExt(Arc::new(keystore)))
-	}
-}

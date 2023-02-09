@@ -52,12 +52,12 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
   use super::*;
-  use frame_support::pallet_prelude::*;
+  use frame_support::{pallet_prelude::*, assert_ok};
   use frame_system::pallet_prelude::*;
 
   use pallet_tds_ipfs_core::{
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
-    ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand,
+    ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality
   };
 
   use sp_core::crypto::KeyTypeId;
@@ -233,6 +233,8 @@ pub mod pallet {
       let requester = ensure_signed(origin)?;
       let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::AddBytes(received_bytes, version));
+
+	  log::info!("IPFS CALL: add_bytes");
 
       let ipfs_command_request = CommandRequest::<T> {
         identifier: generate_id::<T>(),
@@ -443,7 +445,11 @@ pub mod pallet {
         Commands::<T>::get().unwrap_or(Vec::<CommandRequest<T>>::new());
 
       for command_request in commands {
-        match ocw_process_command::<T>(
+		if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+			log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
+		}
+
+		match ocw_process_command::<T>(
           block_number,
           command_request.clone(),
           PROCESSED_COMMANDS,
@@ -499,6 +505,10 @@ pub mod pallet {
         data: data.clone(),
       });
 
+	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+		log::info!("IPFS CALL: signed_callback for Add Bytes");
+	  }
+
       for (_account, result) in &results {
         match result {
           Ok(()) => {
@@ -525,6 +535,10 @@ pub mod pallet {
       } else {
         info!("Received data: {:?}", data);
       }
+
+	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+		log::info!("IPFS CALL: command_callback for Add Bytes");
+	  }
 
       for command in command_request.clone().ipfs_commands {
         match command {
@@ -579,4 +593,59 @@ pub mod pallet {
 
     }
   }
+
+  fn find_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> Option<T> {
+	let found_value = vector.iter().find(|curr_value| {
+		value.eq_type(*curr_value)
+  	});
+
+	let ret_val: Option<T> = match found_value {
+		Some(value) => Some(value.clone()),
+		None => None
+	};
+
+	ret_val
+  }
+
+  fn contains_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> bool {
+	let ret_val = match find_value_of_type_in_vector(value, vector) {
+		Some(_) => true,
+		None => false,
+	};
+
+	ret_val
+  }
+
+
+  #[test]
+fn test_find_value_of_type_in_vector() {
+	let cmd_add = IpfsCommand::AddBytes(vec![1,2,3,4,5], 1);
+	let cmd_add_two = IpfsCommand::AddBytes(vec![6,2,4,4,5], 0);
+	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
+	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
+	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);
+
+	let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
+
+	assert!(find_value_of_type_in_vector(&cmd_add, &vec) != None);
+	assert!(find_value_of_type_in_vector(&cmd_add_two, &vec) != None);
+	assert!(find_value_of_type_in_vector(&cmd_disconnect, &vec) == None);
+}
+
+#[test]
+fn test_contains_value_of_type_in_vector() {
+	let cmd_add = IpfsCommand::AddBytes(vec![1,2,3,4,5], 1);
+	let cmd_add_two = IpfsCommand::AddBytes(vec![6,2,4,4,5], 0);
+	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
+	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
+	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);
+
+	let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
+
+	assert!(contains_value_of_type_in_vector(&cmd_add, &vec));
+	assert!(contains_value_of_type_in_vector(&cmd_add_two, &vec));
+	assert!(contains_value_of_type_in_vector(&cmd_disconnect, &vec) == false);
+}
+
+
 }

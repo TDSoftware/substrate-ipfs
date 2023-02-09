@@ -333,6 +333,20 @@ pub mod pallet {
     GetProviders(Vec<u8>),
   }
 
+  pub trait TypeEquality<Rhs = Self>
+  where
+	  Rhs: ?Sized,
+  {
+	  fn eq_type(&self, other: &Rhs) -> bool;
+
+  }
+
+  impl TypeEquality for IpfsCommand {
+	fn eq_type(&self, other: &IpfsCommand) -> bool {
+		sp_core::sp_std::mem::discriminant(self) == sp_core::sp_std::mem::discriminant(other)
+	}
+  }
+
   /** CommandRequest is used for issuing requests to an ocw that has IPFS within its runtime.
 
     - identifier: [u8; 32]

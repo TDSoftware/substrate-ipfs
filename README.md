@@ -24,6 +24,31 @@ In all communications and contributions, this project follows the [Contributor C
 
 The security policy and procedures can be found in [`docs/SECURITY.md`](docs/SECURITY.md).
 
+## IPFS
+
+This version of Substrate contains a working IPFS node and IPFS integration.
+Just install and start this implementation like any other substrate blockchain. 
+```bash
+# E.g. run the blockchain in development mode
+cargo run -- --dev
+```
+
+Once started, you should see the connecting peer id in the console:
+```bash
+net: starting with peer id 12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8
+IPFS: Node started with PeerId 12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8 and address ["/ip4/127.0.0.1/tcp/49595/p2p/12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8"]  
+```
+If you are interested, feel free to get in contact:
+[tdsoftware.de](https://tdsoftware.de)
+
+For details about the implementation, check the following project folders:
+```
+/client/offchain
+/frame/tds-ipfs-core
+/frame/tds-ipfs
+/primitives/runtime/src/offchain
+```
+
 ## License
 
 - Substrate Primitives (`sp-*`), Frame (`frame-*`) and the pallets (`pallets-*`), binaries (`/bin`) and all other utilities are licensed under [Apache 2.0](LICENSE-APACHE2).

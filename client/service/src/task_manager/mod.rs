@@ -41,8 +41,7 @@ use tokio::runtime::Handle;
 use tracing_futures::Instrument;
 
 mod prometheus_future;
-#[cfg(test)]
-mod tests;
+
 
 /// Default task group name.
 pub const DEFAULT_GROUP_NAME: &str = "default";
@@ -534,5 +533,23 @@ impl TaskRegistry {
 	/// number per task represents the concurrently running tasks with the same identifier.
 	pub fn running_tasks(&self) -> HashMap<Task, usize> {
 		(*self.tasks.lock()).clone()
+	}
+}
+
+mod tests {
+    use prometheus_endpoint::{Registry, PrometheusError};
+    use tokio::runtime::Handle;
+
+    use crate::TaskManager;
+
+	 impl TaskManager {
+		/// Creates a TaskManager instance with test setup
+		pub fn new_for_testing(
+			tokio_handle: Handle,
+			prometheus_registry: Option<&Registry>,
+		) -> Result<Self, PrometheusError> {
+			let ipfs_rt = tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
+			Self::new(tokio_handle, ipfs_rt, prometheus_registry)
+		}
 	}
 }

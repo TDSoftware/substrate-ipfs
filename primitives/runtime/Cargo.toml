@@ -38,6 +38,7 @@ sp-api = { version = "4.0.0-dev", path = "../api" }
 sp-state-machine = { version = "0.13.0", path = "../state-machine" }
 sp-tracing = { version = "6.0.0", path = "../../primitives/tracing" }
 substrate-test-runtime-client = { version = "2.0.0", path = "../../test-utils/runtime/client" }
+sp-runtime = { version = "7.0.0", path = "../runtime" }
 
 [features]
 runtime-benchmarks = []

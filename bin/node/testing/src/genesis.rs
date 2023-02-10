@@ -95,5 +95,6 @@ pub fn config_endowed(code: Option<&[u8]>, extra_endowed: Vec<AccountId>) -> Gen
 		alliance_motion: Default::default(),
 		nomination_pools: Default::default(),
 		ipfs: Default::default(),
+		ipfs_core: Default::default(),
 	}
 }

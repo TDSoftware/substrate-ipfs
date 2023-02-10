@@ -85,7 +85,8 @@ async fn run_background_task_blocking(duration: Duration, _keep_alive: impl Any)
 }
 
 fn new_task_manager(tokio_handle: tokio::runtime::Handle) -> TaskManager {
-	TaskManager::new(tokio_handle, None).unwrap()
+	let ipfs_rt = tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
+	TaskManager::new(tokio_handle, ipfs_rt, None).unwrap()
 }
 
 #[test]

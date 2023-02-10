@@ -5,25 +5,28 @@
 
 > The Interplanetary File System (IPFS), implemented in Rust
 
-[![Not Maintained](https://img.shields.io/badge/Maintenance%20Level-Abandoned-orange.svg)](https://gist.github.com/cheerfulstoic/d107229326a01ff0f333a1d3476e068d)
-
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Description](#description)
-    - [Project Status](#project-status---alpha)
+  - [Project Status](#project-status)
 - [Install](#install)
-    - [Dependencies](#dependencies)
-    - [Rust IPFS](#install-rust-ipfs-itself)
-- [Getting Started](#getting-started)
-    - [Running the tests](#running-the-tests)
-    - [Contributing](#contributing)
+  - [Dependencies](#dependencies)
+  - [Install `rust-ipfs` itself](#install-rust-ipfs-itself)
+- [Getting started](#getting-started)
+  - [Running the tests](#running-the-tests)
+  - [Contributing](#contributing)
 - [Roadmap](#roadmap)
-    - [Completed](#completed-work)
-    - [In progress](#work-in-progress)
-    - [Still required](#work-still-required)
+  - [Completed Work](#completed-work)
+  - [Work in Progress](#work-in-progress)
+  - [Work still required](#work-still-required)
 - [Maintainers](#maintainers)
-- [Alternatives](#alternatives-and-other-cool-related-projects)
+- [Alternatives and other cool, related projects](#alternatives-and-other-cool-related-projects)
 - [Contributors](#contributors)
+  - [Code Contributors](#code-contributors)
+  - [Financial Contributors](#financial-contributors)
+    - [Individuals](#individuals)
+    - [Organizations](#organizations)
 - [License](#license)
 - [Trademarks](#trademarks)
 
@@ -31,7 +34,7 @@
 
 This repository contains the crates for the IPFS core implementation which includes a blockstore, a libp2p integration which includes DHT content discovery and pubsub support, and HTTP API bindings. Our goal is to leverage both the unique properties of Rust to create powerful, performant software that works even in resource-constrained environments, while also maximizing interoperability with the other "flavors" of IPFS, namely JavaScript and Go.
 
-### Project Status - ~~`Alpha`~~ Not Maintained
+### Project Status
 
 You can see details about what's implemented, what's not, and also learn about other ecosystem projects, at [Are We IPFS Yet?](https://areweipfsyet.rs)
 

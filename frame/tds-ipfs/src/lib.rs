@@ -12,7 +12,6 @@ use frame_support::{ dispatch::DispatchResult};
 
 use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
-use sp_std::{str, vec::Vec};
 
 #[cfg(test)]
 mod mock;
@@ -52,12 +51,16 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
   use super::*;
-  use frame_support::{pallet_prelude::*, assert_ok};
+
+  use frame_support::{pallet_prelude::*};
   use frame_system::pallet_prelude::*;
+  use sp_std::vec::Vec;
+  use sp_std::{str};
 
   use pallet_tds_ipfs_core::{
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
-    ocw_process_command, CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality
+    ocw_process_command, set_offchain_data,
+	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
   };
 
   use sp_core::crypto::KeyTypeId;
@@ -66,6 +69,7 @@ pub mod pallet {
   const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
 
   /// Configure the pallet by specifying the parameters and types on which it depends.
+
   #[pallet::config]
   pub trait Config:
     frame_system::Config + pallet_tds_ipfs_core::Config + CreateSignedTransaction<Call<Self>>
@@ -90,6 +94,7 @@ pub mod pallet {
   #[pallet::storage_version(STORAGE_VERSION)]
   #[pallet::without_storage_info]
   pub struct Pallet<T>(_);
+
 
   // The pallet's runtime storage items.
   // https://docs.substrate.io/v3/runtime/storage
@@ -206,7 +211,7 @@ pub mod pallet {
 
   #[pallet::hooks]
   impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-    fn offchain_worker(block_number: T::BlockNumber) {
+fn offchain_worker(block_number: T::BlockNumber) {
       if let Err(_err) = Self::print_metadata(&"*** IPFS off-chain worker started with ***") {
         log::error!("IPFS: Error occurred during `print_metadata`");
       }
@@ -231,8 +236,11 @@ pub mod pallet {
     #[pallet::weight(200_000)]
     pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>, version: u8) -> DispatchResult {
       let requester = ensure_signed(origin)?;
-      let mut commands = Vec::<IpfsCommand>::new();
-      commands.push(IpfsCommand::AddBytes(received_bytes, version));
+	  let block_number = frame_system::Pallet::<T>::block_number();
+	  set_offchain_data::<T>(block_number, received_bytes);
+
+	  let mut commands = Vec::<IpfsCommand>::new();
+      commands.push(IpfsCommand::AddBytes(version));
 
 	  log::info!("IPFS CALL: add_bytes");
 
@@ -435,7 +443,6 @@ pub mod pallet {
   }
 
   impl<T: Config> Pallet<T> {
-    // helper functions
 
     /**
        Iterate over all of the Active CommandRequests calling them.
@@ -445,7 +452,7 @@ pub mod pallet {
         Commands::<T>::get().unwrap_or(Vec::<CommandRequest<T>>::new());
 
       for command_request in commands {
-		if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+		if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
 			log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
 		}
 
@@ -505,7 +512,7 @@ pub mod pallet {
         data: data.clone(),
       });
 
-	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
 		log::info!("IPFS CALL: signed_callback for Add Bytes");
 	  }
 
@@ -536,7 +543,7 @@ pub mod pallet {
         info!("Received data: {:?}", data);
       }
 
-	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(Vec::<u8>::new(), 0), &command_request.ipfs_commands) {
+	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
 		log::info!("IPFS CALL: command_callback for Add Bytes");
 	  }
 
@@ -550,7 +557,7 @@ pub mod pallet {
           IpfsCommand::DisconnectFrom(address) => Self::deposit_event(
             Event::DisconnectedFrom(command_request.clone().requester, address),
           ),
-          IpfsCommand::AddBytes(_, _) => Self::deposit_event(Event::AddedCid(
+          IpfsCommand::AddBytes( _ ) => Self::deposit_event(Event::AddedCid(
             command_request.clone().requester,
             data.clone(),
           )),

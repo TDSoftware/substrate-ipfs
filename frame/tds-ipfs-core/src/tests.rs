@@ -1,5 +1,5 @@
-use frame_support::assert_ok;
-use crate::{mock::*};
+use frame_support::{assert_ok};
+use crate::{mock::*, IpfsCommand, TypeEquality};
 
 #[test]
 fn test_generate_id() {
@@ -78,5 +78,21 @@ fn test_cat_bytes() {
 		result = mock_cat_bytes("QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR");
 		println!("{:?}", &result);
 		assert_ok!(&result);
+	});
+}
+
+
+#[test]
+fn test_ipfs_command_type_equality() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let cmd_add_bytes_one = IpfsCommand::AddBytes(vec![1,2,3,4,5], 1);
+		let cmd_add_bytes_two = IpfsCommand::AddBytes(vec![3,4,6,8,9], 0);
+		let cmd_cat_bytes = IpfsCommand::CatBytes(vec![3,4,6,8,9]);
+
+		let cmp_add_bytes = cmd_add_bytes_one.eq_type(&cmd_add_bytes_two);
+		assert!(cmp_add_bytes);
+
+		let cmp_add_cat_bytes = cmd_add_bytes_two.eq_type(&cmd_cat_bytes) == false;
+		assert!(cmp_add_cat_bytes);
 	});
 }

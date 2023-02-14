@@ -12,7 +12,9 @@ use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTrans
 
 use log::info;
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
-use sp_std::{str, vec::Vec};
+
+use sp_std::str;
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -236,7 +238,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let requester = ensure_signed(origin)?;
 			let mut commands = Vec::<IpfsCommand>::new();
-			commands.push(IpfsCommand::AddBytes(received_bytes, version));
+			commands.push(IpfsCommand::AddBytes(version));
 
 			let ipfs_command_request = CommandRequest::<T> {
 				identifier: generate_id::<T>(),
@@ -540,7 +542,7 @@ pub mod pallet {
 					IpfsCommand::DisconnectFrom(address) => Self::deposit_event(
 						Event::DisconnectedFrom(command_request.clone().requester, address),
 					),
-					IpfsCommand::AddBytes(_, _) => Self::deposit_event(Event::AddedCid(
+					IpfsCommand::AddBytes(_) => Self::deposit_event(Event::AddedCid(
 						command_request.clone().requester,
 						data.clone(),
 					)),

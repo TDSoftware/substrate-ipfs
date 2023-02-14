@@ -254,7 +254,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       Ok(Self::deposit_event(Event::QueuedDataToAdd(requester)))
     }
 
-	/** Fin IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
+	/** Find IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
     Otherwise the decimal representation of the bytes is displayed instead. **/
 
 	#[pallet::call_index(1)]

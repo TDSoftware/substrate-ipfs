@@ -59,8 +59,9 @@ pub mod pallet {
 
   use pallet_tds_ipfs_core::{
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
-    ocw_process_command, set_offchain_data,
+    ocw_process_command,
 	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
+	storage::set_offchain_data,
   };
 
   use sp_core::crypto::KeyTypeId;

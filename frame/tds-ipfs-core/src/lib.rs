@@ -16,7 +16,7 @@
 pub use pallet::*;
 
 use codec::{Decode, Encode};
-use sp_io::offchain_index;
+
 use sp_runtime::{
   offchain::{
     ipfs,
@@ -32,7 +32,7 @@ use log::info;
 use sp_core::offchain::{Duration, IpfsRequest, IpfsResponse, OpaqueMultiaddr};
 use sp_std::{str, vec::Vec};
 
-const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
+pub mod storage;
 
 #[cfg(test)]
 mod mock;
@@ -41,13 +41,6 @@ mod mock;
 mod tests;
 
 use frame_support::traits::Randomness;
-
-#[derive(Debug, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Deserialize))]
-struct OffchainStorageData {
-  data: Vec<u8>,
-  // TODO: add action/usage like Addbytes ...
-}
 
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.
@@ -59,44 +52,6 @@ pub fn generate_id<T: Config>() -> [u8; 32] {
 	<frame_system::Pallet<T>>::block_number(),
   );
   payload.using_encoded(sp_io::hashing::blake2_256)
-}
-
-/**
- * Writes offchain data if in onchain context
-*/
-pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>) {
-	let key = offchain_data_key::<T>(block_number);
-	offchain_index::set(&key, &data.encode());
-}
-
-/**
- * Creates an offchain data key/identifier for the given block number
-*/
-pub fn offchain_data_key<T: Config>(block_number: T::BlockNumber) -> Vec<u8> {
-	block_number.using_encoded(|encoded_bn| {
-		OFFCHAIN_KEY_PREFIX.clone().into_iter()
-			.chain(b"/".into_iter())
-			.chain(encoded_bn)
-			.copied()
-			.collect::<Vec<u8>>()
-	})
-}
-
-/**
- * Returns offchain indexed data for the given key
-*/
-pub fn offchain_data_for_key<T: codec::Decode>(key: Vec<u8>) -> Result<Option<T>, StorageRetrievalError> {
-	let storage_ref = StorageValueRef::persistent(&key);
-	storage_ref.get::<T>()
-}
-
-/**
- * Returns offchain indexed data for the given block number
-*/
-pub fn offchain_data_for_block_number<T: codec::Decode, C: Config>(block_number: C::BlockNumber) -> Result<Option<T>, StorageRetrievalError> {
-	let key = offchain_data_key::<C>(block_number);
-	let storage_ref = StorageValueRef::persistent(&key);
-	storage_ref.get::<T>()
 }
 
 /** Process each IPFS `command_request` in the offchain worker
@@ -139,7 +94,7 @@ pub fn ocw_process_command<T: Config>(
           IpfsCommand::AddBytes(ref version) => {
 			let bytes_to_add: Vec<u8>;
 
-			if let Ok(Some(data)) =  offchain_data_for_block_number::<OffchainStorageData, T> (block_number) {
+			if let Ok(Some(data)) =  storage::offchain_data_for_block_number::<storage::OffchainStorageData, T> (block_number) {
 				log::info!("IPFS AddBytes data: {:?}", data.data);
 				bytes_to_add = data.data;
 			} else {
@@ -459,8 +414,6 @@ pub mod pallet {
   #[pallet::genesis_build]
   impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
     fn build(&self) {
-      // TODO: Check if needed
-      //commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
     }
   }
 }

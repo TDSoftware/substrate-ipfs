@@ -93,7 +93,7 @@ pub fn ocw_process_command<T: Config>(
 			let bytes_to_add: Vec<u8>;
 
 			if let Ok(data) = storage::offchain_data::<T> (block_number) {
-				log::info!("IPFS AddBytes data: {:?}", data);
+				log::info!("IPFS AddBytes with data");
 				bytes_to_add = data.clone();
 			} else {
 				log::info!("IPFS AddBytes no data :/");

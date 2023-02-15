@@ -11,7 +11,7 @@ use frame_support::{parameter_types};
 
 use sp_runtime::{
   testing::Header,
-  traits::{BlakeTwo256, IdentityLookup, BlockNumberProvider}, offchain::{OpaqueMultiaddr, OffchainDbExt},
+  traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr, OffchainDbExt},
 };
 
 use sp_core::{

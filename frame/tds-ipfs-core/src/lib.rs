@@ -14,7 +14,6 @@
 //!
 
 pub use pallet::*;
-
 use codec::{Decode, Encode};
 
 use sp_runtime::{
@@ -32,14 +31,13 @@ use log::info;
 use sp_core::offchain::{Duration, IpfsRequest, IpfsResponse, OpaqueMultiaddr};
 use sp_std::{str, vec::Vec};
 
-pub mod storage;
-
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
 
+pub mod storage;
 use frame_support::traits::Randomness;
 
 /** Create a "unique" id for each command
@@ -94,9 +92,9 @@ pub fn ocw_process_command<T: Config>(
           IpfsCommand::AddBytes(ref version) => {
 			let bytes_to_add: Vec<u8>;
 
-			if let Ok(Some(data)) =  storage::offchain_data_for_block_number::<storage::OffchainStorageData, T> (block_number) {
-				log::info!("IPFS AddBytes data: {:?}", data.data);
-				bytes_to_add = data.data;
+			if let Ok(data) = storage::offchain_data::<T> (block_number) {
+				log::info!("IPFS AddBytes data: {:?}", data);
+				bytes_to_add = data.clone();
 			} else {
 				log::info!("IPFS AddBytes no data :/");
 				return Err(Error::<T>::RequestFailed);
@@ -417,3 +415,4 @@ pub mod pallet {
     }
   }
 }
+

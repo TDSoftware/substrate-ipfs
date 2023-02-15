@@ -1,5 +1,7 @@
+use codec::{Encode, Decode};
 use frame_support::{assert_ok};
-use crate::{mock::*, IpfsCommand, TypeEquality};
+use sp_runtime::traits::BlockNumberProvider;
+use crate::{mock::*, storage::{self, OffchainStorageData}, IpfsCommand, TypeEquality};
 
 #[test]
 fn test_generate_id() {
@@ -18,7 +20,6 @@ fn test_addresses_to_utf8_safe_bytes() {
 		assert!(result.len() > 0);
 		let data = [116, 101, 115, 116, 47, 98, 121, 116, 101, 115, 47, 195, 182, 195, 164, 195, 188, 195, 159].to_vec();
 		assert_eq!(result, data);
-
 	});
 }
 
@@ -81,7 +82,6 @@ fn test_cat_bytes() {
 	});
 }
 
-
 #[test]
 fn test_ipfs_command_type_equality() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
@@ -94,5 +94,38 @@ fn test_ipfs_command_type_equality() {
 
 		let cmp_add_cat_bytes = cmd_add_bytes_two.eq_type(&cmd_cat_bytes) == false;
 		assert!(cmp_add_cat_bytes);
+	});
+}
+
+#[test]
+fn test_storage() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let block_number = System::current_block_number();
+		let test = vec![6,1,2,3,4];
+		
+		storage::set_offchain_data::<Test>(block_number, test.clone(), true);
+		let offchain_data = storage::offchain_data::<Test>(block_number);
+		
+		assert_ok!(&offchain_data);
+		let bytes = offchain_data.expect("expected bytes");
+		
+		println!("bytes = {:?}", bytes);
+		assert!(bytes == test);
+	});
+}
+
+#[test]
+fn test_storage_data() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+
+		let data = vec![1,2,3,];
+		let data_1 = OffchainStorageData::new(data);
+		let encode = data_1.encode();
+
+		let decode = OffchainStorageData::decode(&mut &*encode);
+		assert_ok!(&decode);
+		
+		let decoded_obj = decode.expect("expected OffchainStorageData");
+		assert!(decoded_obj.data == data_1.data);
 	});
 }

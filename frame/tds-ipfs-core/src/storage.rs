@@ -30,12 +30,12 @@ impl OffchainStorageData {
 /**
  * Writes offchain data if in onchain context
 */
-pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>, is_offchain: bool) {
+pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>, is_in_offchain_context: bool) {
 	let key = offchain_data_key::<T>(block_number);
 
 	let storage_data = OffchainStorageData::new(data);
 
-	if is_offchain {
+	if is_in_offchain_context {
 		let key = offchain_data_key::<T>(block_number);
 		let storage_ref = StorageValueRef::persistent(&key);
 

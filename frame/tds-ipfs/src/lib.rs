@@ -238,7 +238,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
     pub fn add_bytes(origin: OriginFor<T>, received_bytes: Vec<u8>, version: u8) -> DispatchResult {
       let requester = ensure_signed(origin)?;
 	  let block_number = frame_system::Pallet::<T>::block_number();
-	  set_offchain_data::<T>(block_number, received_bytes);
+	  set_offchain_data::<T>(block_number, received_bytes, false);
 
 	  let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::AddBytes(version));

@@ -337,7 +337,8 @@ pub enum IpfsRequest {
 		message: Vec<u8>,
 	},
 	/// Remove a block from the ipfs repo. A pinned block cannot be removed.
-	RemoveBlock(Vec<u8>),
+	// TODO: TDS add Cid again!
+	RemoveBlock(/*Cid*/),
 	/// Remove an address that is listened on.
 	RemoveListeningAddr(OpaqueMultiaddr),
 	/// Unpins a given Cid recursively or only directly.

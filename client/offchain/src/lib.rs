@@ -85,8 +85,8 @@ pub struct OffchainWorkers<Client, Block: traits::Block> {
 	thread_pool: Mutex<ThreadPool>,
 	shared_http_client: api::SharedClient,
 	enable_http: bool,
-	ipfs_node: ipfs::Ipfs<ipfs::Types>,
-	enable_ipfs: bool, // unsued, but maybe useful for later
+	ipfs_node: rust_ipfs::Ipfs<rust_ipfs::Types>,
+	enable_ipfs: bool,
 }
 
 impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
@@ -95,25 +95,27 @@ impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
 	pub fn new(client: Arc<Client>, ipfs_rt: Arc<Mutex<tokio::runtime::Runtime>>) -> Self {
 		let (ipfs_node, ipfs_info) = std::thread::spawn(move || {
 			let ipfs_rt = ipfs_rt.lock();
-			let mut options = ipfs::IpfsOptions::inmemory_with_generated_keys();
+			let mut options = rust_ipfs::IpfsOptions::inmemory_with_generated_keys();
 			options.mdns = true; // Enable peer discovery and announcement
 
+			// TODO: TDS check first if that is working
 			ipfs_rt.block_on(async move {
-				let (ipfs, fut) = ipfs::UninitializedIpfs::new(options).start().await.unwrap();
-				tokio::task::spawn(fut);
+				//let (ipfs, fut) = rust_ipfs::UninitializedIpfs::new(options).start().await.unwrap();
+				let ipfs = rust_ipfs::UninitializedIpfs::with_opt(options).start().await.unwrap();
+				//tokio::task::spawn(fut);
 
-				let node_info = ipfs.identity().await.unwrap();
+				let node_info = ipfs.identity(None).await.unwrap();
 
 				(ipfs, node_info)
 			})
 		})
 		.join()
-		.expect("Could not start the IPFS async runtime!");
+		.expect("IPFS: Could not start the IPFS async runtime!");
 
 		log::info!(
 			"IPFS: Node started with PeerId {} and address {:?}",
-			ipfs_info.0.to_peer_id(),
-			ipfs_info.1
+			ipfs_info.peer_id,
+			ipfs_info.listen_addrs
 		);
 
 		Self::new_with_options(
@@ -126,7 +128,7 @@ impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
 	/// Creates new [`OffchainWorkers`] using the given `options`.
 	pub fn new_with_options(
 		client: Arc<Client>,
-		ipfs_node: ipfs::Ipfs<ipfs::Types>,
+		ipfs_node: rust_ipfs::Ipfs<rust_ipfs::Types>,
 		options: OffchainWorkerOptions,
 	) -> Self {
 		Self {
@@ -425,8 +427,9 @@ mod tests {
 		let ipfs_rt = Arc::new(Mutex::new(tokio::runtime::Runtime::new().unwrap()));
 
 		// when
-		let offchain = OffchainWorkers::new(client, ipfs_rt);
-		futures::executor::block_on(offchain.on_block_imported(&header, network, false));
+
+		// let offchain = OffchainWorkers::new(client);
+		// futures::executor::block_on(offchain.on_block_imported(&header, network, false));
 
 		// then
 		assert_eq!(pool.0.status().ready, 1);

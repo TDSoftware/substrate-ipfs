@@ -89,12 +89,28 @@ impl Prefix {
 		res
 	}
 }
+/*
+/// Network behaviour that handles sending and receiving IPFS blocks.
+pub struct Bitswap<B> {
+	client: Arc<dyn Client<B>>,
+	ready_blocks: VecDeque<(PeerId, BitswapMessage)>,
+}
+
+impl<B: BlockT> Bitswap<B> {
+	/// Create a new instance of the bitswap protocol handler.
+	pub fn new(client: Arc<dyn Client<B>>) -> Self {
+
+		Self { client, ready_blocks: Default::default() }
+	}
+}
+ */
 
 /// Bitswap request handler
 pub struct BitswapRequestHandler<B> {
 	client: Arc<dyn BlockBackend<B> + Send + Sync>,
 	request_receiver: mpsc::Receiver<IncomingRequest>,
 }
+
 
 impl<B: BlockT> BitswapRequestHandler<B> {
 	/// Create a new [`BitswapRequestHandler`].

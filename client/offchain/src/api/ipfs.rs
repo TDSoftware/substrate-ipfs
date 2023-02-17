@@ -168,7 +168,6 @@ enum IpfsApiRequest {
 impl IpfsApi {
 	/// Mimics the corresponding method in the offchain API.
 	pub fn request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
-		tracing::info!("Starting request {:?}", request);
 		let id = self.next_id;
 		debug_assert!(!self.requests.contains_key(&id));
 
@@ -237,10 +236,7 @@ impl IpfsApi {
 			// we loop back and `return`.
 			let next_message = {
 				let mut next_msg = future::maybe_done(self.from_worker.next());
-
-				tracing::info!("next_msg 1{:?}", next_msg);
 				futures::executor::block_on(future::select(&mut next_msg, &mut deadline));
-				tracing::info!("next_msg 2 {:?}", next_msg);
 
 				if let future::MaybeDone::Done(msg) = next_msg {
 					msg
@@ -252,7 +248,7 @@ impl IpfsApi {
 			};
 
 			// Update internal state based on received message.
-			tracing::info!("IPFS next message {:?}", next_message);
+
 			match next_message {
 				Some(WorkerToApi::Response { id, value }) => match self.requests.remove(&id) {
 					Some(IpfsApiRequest::Dispatched) => {

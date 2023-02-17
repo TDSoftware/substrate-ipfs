@@ -538,14 +538,18 @@ fn offchain_worker(block_number: T::BlockNumber) {
     // - Validate a connected peer has the CID, and which peer has it etc.
 
     fn command_callback(command_request: &CommandRequest<T>, data: Vec<u8>) -> Result<(), ()> {
-      if let Ok(utf8_str) = str::from_utf8(&*data) {
-        info!("Received string: {:?}", utf8_str);
-      } else {
-        info!("Received data: {:?}", data);
-      }
+	  let contains_cat_bytes = contains_value_of_type_in_vector(&IpfsCommand::CatBytes(Vec::<u8>::new()), &command_request.ipfs_commands);
+	  let data_len_exceeded = data.len() > 20;
 
-	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
-		log::info!("IPFS CALL: command_callback for Add Bytes");
+	  if contains_cat_bytes && data_len_exceeded {  // Avoid excessive data logging
+		  info!("Received data for cat bytes with length: {:?}", &data.len());
+	  }
+	  else {
+		if let Ok(utf8_str) = str::from_utf8(&*data) {
+			info!("Received string: {:?}", utf8_str);
+		  } else {
+			info!("Received data: {:?}", data);
+		  }
 	  }
 
       for command in command_request.clone().ipfs_commands {
@@ -624,11 +628,22 @@ fn offchain_worker(block_number: T::BlockNumber) {
 	ret_val
   }
 
+#[test]
+fn test_type_equality() {
+	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
+	let cmd_cat_2 = IpfsCommand::CatBytes(vec![]);
+	let cmd_add = IpfsCommand::AddBytes(1);
 
-  #[test]
+	assert!(cmd_cat.eq_type(&cmd_cat_2));
+	assert!(cmd_cat.eq_type(&cmd_cat));
+	assert!(cmd_cat.eq_type(&cmd_add) == false);
+}
+
+
+#[test]
 fn test_find_value_of_type_in_vector() {
-	let cmd_add = IpfsCommand::AddBytes(vec![1,2,3,4,5], 1);
-	let cmd_add_two = IpfsCommand::AddBytes(vec![6,2,4,4,5], 0);
+	let cmd_add = IpfsCommand::AddBytes(0);
+	let cmd_add_two = IpfsCommand::AddBytes(1);
 	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
 	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
 	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);
@@ -642,8 +657,8 @@ fn test_find_value_of_type_in_vector() {
 
 #[test]
 fn test_contains_value_of_type_in_vector() {
-	let cmd_add = IpfsCommand::AddBytes(vec![1,2,3,4,5], 1);
-	let cmd_add_two = IpfsCommand::AddBytes(vec![6,2,4,4,5], 0);
+	let cmd_add = IpfsCommand::AddBytes(0);
+	let cmd_add_two = IpfsCommand::AddBytes(1);
 	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
 	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
 	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);

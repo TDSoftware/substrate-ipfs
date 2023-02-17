@@ -97,13 +97,10 @@ impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
 			let ipfs_rt = ipfs_rt.lock();
 			let mut options = rust_ipfs::IpfsOptions::inmemory_with_generated_keys();
 			options.mdns = true; // Enable peer discovery and announcement
+			options.keep_alive = true;
 
-			// TODO: TDS check first if that is working
 			ipfs_rt.block_on(async move {
-				//let (ipfs, fut) = rust_ipfs::UninitializedIpfs::new(options).start().await.unwrap();
 				let ipfs = rust_ipfs::UninitializedIpfs::with_opt(options).start().await.unwrap();
-				//tokio::task::spawn(fut);
-
 				let node_info = ipfs.identity(None).await.unwrap();
 
 				(ipfs, node_info)

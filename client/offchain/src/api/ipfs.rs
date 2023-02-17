@@ -14,7 +14,7 @@
 use crate::api::timestamp;
 use cid::{Cid};
 use fnv::FnvHashMap;
-use futures::{future, prelude::*};
+use futures::{future, prelude::*, pin_mut};
 use rust_ipfs::unixfs::UnixfsStatus;
 use rust_ipfs::{
 	BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes,
@@ -30,6 +30,7 @@ use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnbound
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
 };
+use tokio::sync::broadcast::error;
 use std::fmt::Debug;
 use std::{
 	collections::BTreeMap,
@@ -92,11 +93,34 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> R
 }
 
 async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {
-	// let ipld = ipfs.dag().get(path).await?;
-	// let pb_node = (&ipld).try_into()?;
-	// Ok(pb_node.data)
+	let path_copy = path.clone();
+	let stream_result = ipfs.cat_unixfs(path, None).await;
+	let default_error_msg = "Unable to cat file: ".to_string() + &path_copy.to_string();
 
-	Result::Err(rust_ipfs::Error::msg("Fuck Rust ipfs_get"))
+	let default_error = rust_ipfs::Error::msg(default_error_msg);
+
+	if let Ok(stream) = stream_result {
+		pin_mut!(stream);
+		let mut data = Vec::<u8>::new();
+
+		loop {
+			match stream.next().await {
+				Some(Ok(bytes)) => {
+					data.append(&mut bytes.clone());
+				}
+				Some(Err( _ )) => {
+					return Err(default_error);
+				}
+				None => {
+					break
+				}
+			}
+		}
+		Ok(data)
+	}
+	else {
+		Err(rust_ipfs::Error::msg("Unable to upload file"))
+	}
 }
 
 /// Creates a pair of [`IpfsApi`] and [`IpfsWorker`].

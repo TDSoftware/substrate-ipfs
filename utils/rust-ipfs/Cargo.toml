@@ -1,0 +1,122 @@
+[package]
+authors = ["Darius C", "Rust-IPFS contributors"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+name = "rust-ipfs"
+readme = "README.md"
+repository = "https://github.com/dariusc93/rust-ipfs"
+description = "IPFS node implementation"
+version = "0.3.0-alpha.3"
+
+[features]
+
+# feature will enable sled_data_store use in ipfs::Types (default used by ipfs-http for example)
+# sled dependency is not guarded by this to keep compiling and test the pinstore.
+sled_data_store = []
+test_go_interop = []
+test_js_interop = []
+
+[dependencies]
+anyhow = "1.0"
+async-stream = { default-features = false, version = "0.3" }
+async-trait = { default-features = false, version = "0.1" }
+base64 = { default-features = false, features = ["alloc"], version = "0.21" }
+ipfs-bitswap = { version = "0.3.0-alpha.3", path = "bitswap", package = "rust-ipfs-bitswap" }
+byteorder = { default-features = false, version = "1.3" }
+bytes = { default-features = false, version = "1" }
+libipld = "0.15"
+trust-dns-resolver = "0.22.0"
+either = { default-features = false, version = "1.5" }
+futures = { default-features = false, version = "0.3", features = [
+    "alloc",
+    "std",
+] }
+hash_hasher = "2.0.3"
+rust-unixfs = { version = "0.3.0-alpha.3", path = "unixfs" }
+libp2p = { default-features = false, features = [
+    "gossipsub",
+    "autonat",
+    "relay",
+    "dcutr",
+    "identify",
+    "kad",
+    "websocket",
+    "tcp",
+    "macros",
+    "quic",
+    "tokio",
+    "mplex",
+    "noise",
+    "ping",
+    "yamux",
+    "dns",
+    "mdns",
+    "rsa",
+    "serde",
+], version = "0.50" }
+parking_lot = "0.12"
+serde = { default-features = false, features = ["derive"], version = "1.0" }
+serde_json = { default-features = false, features = ["std"], version = "1.0" }
+thiserror = { default-features = false, version = "1.0" }
+tokio = { default-features = false, features = [
+    "fs",
+    "macros",
+    "rt-multi-thread",
+    "sync",
+], version = "1" }
+tokio-stream = { version = "0.1", features = ["fs"] }
+tokio-util = { version = "0.7", features = ["full"] }
+tracing = { default-features = false, features = ["log"], version = "0.1" }
+tracing-futures = { default-features = false, features = [
+    "std-future",
+    "std",
+    "futures-03",
+], version = "0.2" }
+
+void = { default-features = false, version = "1.0" }
+fs2 = "0.4"
+sled = "0.34"
+once_cell = "1.16"
+libp2p-nat = { version = "0.1" }
+
+prost = { default-features = false, version = "0.11" }
+
+rlimit = "0.9"
+
+[build-dependencies]
+prost-build = { default-features = false, version = "0.11" }
+
+[dev-dependencies]
+bs58 = "0.4"
+criterion = { default-features = false, version = "0.4" }
+hex-literal = { default-features = false, version = "0.3" }
+sha2 = { default-features = false, version = "0.10" }
+tokio = { default-features = false, features = [
+    "io-std",
+    "io-util",
+    "time",
+], version = "1" }
+rustyline-async = { version = "0.3" }
+tracing-subscriber = { default-features = false, features = [
+    "fmt",
+    "tracing-log",
+    "ansi",
+    "env-filter",
+], version = "0.3" }
+rand = { default-features = false, version = "0.8", features = [
+    "std",
+    "std_rng",
+] }
+tempfile = "3.1.0"
+
+clap = { version = "4.1", features = ["derive"] }
+
+# [[bench]]
+# name = "hashed-map-cid"
+# harness = false
+
+# at least these libp2p components need to be patched if you want to use a local version
+# libp2p = { path = "../libp2p" }
+# libp2p-core = { path = "../libp2p" }
+# libp2p-swarm = { path = "../libp2p" }
+# libp2p-floodsub = { path = "../libp2p" }

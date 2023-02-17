@@ -41,7 +41,7 @@ sp-runtime = { version = "7.0.0", path = "../../primitives/runtime" }
 # IPFS
 log = "0.4.8"
 cid = { version = "0.9.0", cid = "*", multihash = "0.10" }
-rust-ipfs = { git = "https://github.com/dariusc93/rust-ipfs" }
+rust-ipfs = { path = "../../utils/rust-ipfs"}
 
 [dev-dependencies]
 lazy_static = "1.4.0"

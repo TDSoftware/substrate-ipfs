@@ -1,4 +1,6 @@
 use libipld::Cid;
+use libipld::cid::Version;
+use libipld::cid::Error;
 use libipld::multihash::{self, Multihash};
 
 use crate::pb::{FlatUnixFs, PBLink, UnixFs, UnixFsType};
@@ -314,8 +316,18 @@ fn render_and_hash(flat: &FlatUnixFs<'_>) -> (Cid, Vec<u8>) {
     flat.write_message(&mut writer)
         .expect("unsure how this could fail");
     let mh = Multihash::wrap(multihash::Code::Sha2_256.into(), &Sha256::digest(&out)).unwrap();
-    let cid = Cid::new_v0(mh).expect("sha2_256 is the correct multihash for cidv0");
-    (cid, out)
+    let cid = create_cid(&mh, Version::V1).expect("expected cid");
+	// Cid::new_v0(mh).expect("sha2_256 is the correct multihash for cidv0");
+
+	(cid, out)
+}
+
+fn create_cid(multi_hash: &Multihash, version: Version) -> Result<Cid, Error> {
+	match version {
+    	Version::V0 => Cid::new_v0(*multi_hash),
+		// TODO: check if that code fits
+   	 	Version::V1 => Ok(Cid::new_v1(0x70, *multi_hash)),
+	}
 }
 
 /// Chunker strategy

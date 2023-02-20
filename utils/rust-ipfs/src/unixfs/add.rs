@@ -1,6 +1,9 @@
 use std::{borrow::Borrow, path::Path};
 
 use futures::{stream::BoxStream, StreamExt};
+use libipld::{cid};
+
+
 use crate::Block;
 use rust_unixfs::file::adder::{Chunker, FileAdderBuilder};
 use tokio_util::io::ReaderStream;
@@ -14,6 +17,7 @@ pub struct AddOption {
     pub chunk: Option<Chunker>,
     pub pin: bool,
     pub provide: bool,
+	pub cid_version: cid::Version,
 }
 
 impl Default for AddOption {
@@ -21,7 +25,8 @@ impl Default for AddOption {
         Self {
             chunk: Some(Chunker::Size(1024 * 1024)),
             pin: false,
-            provide: false
+            provide: false,
+			cid_version: cid::Version::V0
         }
     }
 }
@@ -60,7 +65,7 @@ where
 {
     let stream = async_stream::stream! {
             let ipfs = ipfs.borrow();
-            
+
             let mut adder = FileAdderBuilder::default()
                 .with_chunker(opt.clone().map(|o| o.chunk.unwrap_or_default()).unwrap_or_default())
                 .build();
@@ -91,7 +96,7 @@ where
                     total += consumed;
                     written += consumed;
                 }
-                
+
                 yield UnixfsStatus::ProgressStatus { written, total_size };
             }
 

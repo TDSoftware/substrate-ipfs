@@ -28,12 +28,12 @@ use sp_core::offchain::{
 };
 
 use std::fmt::Debug;
+use std::task::{Poll, Context};
 use std::{
 	convert::TryInto,
 	fmt, mem,
 	pin::Pin,
 	str,
-	task::{Context, Poll},
 };
 
 // wasm-friendly implementations of Ipfs::{add, get}

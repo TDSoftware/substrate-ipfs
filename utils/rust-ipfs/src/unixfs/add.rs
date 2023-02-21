@@ -1,14 +1,15 @@
 use std::{borrow::Borrow, path::Path};
 
 use futures::{stream::BoxStream, StreamExt};
-use libipld::{cid};
-
+use libipld::{cid::{self, Version}};
 
 use crate::Block;
 use rust_unixfs::file::adder::{Chunker, FileAdderBuilder};
+use rust_unixfs::config;
 use tokio_util::io::ReaderStream;
 
 use crate::{Ipfs, IpfsPath, IpfsTypes};
+
 
 use super::UnixfsStatus;
 
@@ -26,11 +27,21 @@ impl Default for AddOption {
             chunk: Some(Chunker::Size(1024 * 1024)),
             pin: false,
             provide: false,
-			cid_version: cid::Version::V0
+			cid_version: config::DEFAULT_CID_VERSION
         }
     }
 }
 
+impl AddOption {
+	pub fn default_with_cid_version(cid_version: Version ) -> Self {
+		let mut ret_val = Self::default();
+		ret_val.cid_version = cid_version;
+
+		ret_val
+	}
+}
+
+// TODO: pass cid version
 pub async fn add_file<'a, Types, MaybeOwned, P: AsRef<Path>>(
     ipfs: MaybeOwned,
     path: P,
@@ -69,6 +80,10 @@ where
             let mut adder = FileAdderBuilder::default()
                 .with_chunker(opt.clone().map(|o| o.chunk.unwrap_or_default()).unwrap_or_default())
                 .build();
+
+			if let Some(add_option) = opt.clone() {
+				adder.cid_version = add_option.cid_version;
+			}
 
             let mut written = 0;
             yield UnixfsStatus::ProgressStatus { written, total_size };

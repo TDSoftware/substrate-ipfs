@@ -77,19 +77,8 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> R
         }
     }
 
-	// TODO: TDS IPFS
-	// let dag = ipfs.dag();
-
-	// let links: Vec<rust_ipfs::path::PathRoot::Ipld> = vec![];
-	// let mut pb_node = BTreeMap::<String, rust_ipfs::path::PathRoot>::new();
-	// pb_node.insert("Data".to_string(), data.into());
-	// pb_node.insert("Links".to_string(), links.into());
-
-	// // TODO: https://docs.rs/cid/0.7.0/cid, https://docs.rs/cid/0.5.1/src/cid/codec.rs.html#9-11 https://docs.rs/ipfs/0.2.1/ipfs/type.Cid.html
-	// dag.put(pb_node.into(), Codec::DagProtobuf, None).await
 	tracing::info!("IPFS add file result: {:?}", result);
 	result
-
 }
 
 async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {

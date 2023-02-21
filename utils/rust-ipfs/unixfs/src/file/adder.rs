@@ -30,6 +30,8 @@ pub struct FileAdder {
     // large file and using a minimal chunk size. Could be that this must be moved to Collector to
     // help collector (or layout) to decide how this should be persisted.
     unflushed_links: Vec<Link>,
+
+	/// the cid version to create the file with
 	pub cid_version: Version
 }
 

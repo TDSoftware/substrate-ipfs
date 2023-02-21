@@ -21,19 +21,14 @@ use rust_ipfs::{
 	Multiaddr, MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
 };
 
-use rust_ipfs::path::PathRoot::{
-	Ipld
-};
-
-use log::{error, info};
+use log::{error};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
 };
-use tokio::sync::broadcast::error;
+
 use std::fmt::Debug;
 use std::{
-	collections::BTreeMap,
 	convert::TryInto,
 	fmt, mem,
 	pin::Pin,
@@ -41,12 +36,11 @@ use std::{
 	task::{Context, Poll},
 };
 
-const LOG_TARGET: &str = "offchain-worker::http";
-
 // wasm-friendly implementations of Ipfs::{add, get}
 async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<Cid, rust_ipfs::Error> {
+	let cid_version = cid_version_from_raw(version);
 	let data_packed = tokio_stream::once(data).boxed();
-	let mut data_stream = ipfs.add_unixfs(data_packed).await?;
+	let mut data_stream = ipfs.add_unixfs_with_cid_version(cid_version, data_packed).await?;
 
 	let mut result: Result<Cid, rust_ipfs::Error> = Result::Err(rust_ipfs::Error::msg("Unknown error"));
 	while let Some(status) = data_stream.next().await {
@@ -77,19 +71,8 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> R
         }
     }
 
-	// TODO: TDS IPFS
-	// let dag = ipfs.dag();
-
-	// let links: Vec<rust_ipfs::path::PathRoot::Ipld> = vec![];
-	// let mut pb_node = BTreeMap::<String, rust_ipfs::path::PathRoot>::new();
-	// pb_node.insert("Data".to_string(), data.into());
-	// pb_node.insert("Links".to_string(), links.into());
-
-	// // TODO: https://docs.rs/cid/0.7.0/cid, https://docs.rs/cid/0.5.1/src/cid/codec.rs.html#9-11 https://docs.rs/ipfs/0.2.1/ipfs/type.Cid.html
-	// dag.put(pb_node.into(), Codec::DagProtobuf, None).await
 	tracing::info!("IPFS add file result: {:?}", result);
 	result
-
 }
 
 async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {
@@ -140,6 +123,17 @@ pub fn ipfs<I: ::rust_ipfs::IpfsTypes>(ipfs_node: ::rust_ipfs::Ipfs<I>) -> (Ipfs
 	let worker = IpfsWorker { to_api, from_api, ipfs_node, requests: Vec::new() };
 
 	(api, worker)
+}
+// TODO: TDS write test case
+fn cid_version_from_raw(raw_version: u8) -> cid::Version {
+	let ret_val = if raw_version <= 0 {
+		cid::Version::V0
+	}
+	else {
+		cid::Version::V1
+	};
+
+	ret_val
 }
 
 /// Provides IPFS capabilities.

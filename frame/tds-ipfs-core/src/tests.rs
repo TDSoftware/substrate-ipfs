@@ -103,13 +103,15 @@ fn test_offchain_storage_data() {
 
 		let data = vec![1,2,3,];
 		let data_1 = OffchainStorageData::new(data);
+		let test_meta = vec![6, 1, 2, 3, 4];
+		let data_1 = OffchainStorageData::new(data, test_meta);
 		let encode = data_1.encode();
 
 		let decode = OffchainStorageData::decode(&mut &*encode);
 		assert_ok!(&decode);
 
 		let decoded_obj = decode.expect("expected OffchainStorageData");
-		assert!(decoded_obj.data == data_1.data);
+		assert_eq!(decoded_obj.data, data_1.data);
 	});
 }
 
@@ -118,9 +120,10 @@ fn test_offchain_storage_data() {
 fn test_set_offchain_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let block_number = System::current_block_number();
-		let test = vec![6,1,2,3,4];
+		let test_data = vec![6, 1, 2, 3, 4];
+		let test_meta = vec![6, 1, 2, 3, 4];
 
-		storage::set_offchain_data::<Test>(block_number, test.clone(), true);
+		storage::set_offchain_data::<Test>(block_number, test_data.clone(), test_meta.clone(), true);
 		// no assertions here, but set_offchain_data would panic in case something went wrong
 	});
 }
@@ -130,15 +133,18 @@ fn test_offchain_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let block_number = System::current_block_number();
 		let test = vec![6,1,2,3,4];
+		let test_meta = vec![6, 1, 2, 3, 4];
 
-		storage::set_offchain_data::<Test>(block_number, test.clone(), true);
+		storage::set_offchain_data::<Test>(block_number, test.clone(), test_meta.clone(), true);
 		let offchain_data = storage::offchain_data::<Test>(block_number);
 
 		assert_ok!(&offchain_data);
-		let bytes = offchain_data.expect("expected bytes");
+		let data = offchain_data.expect("expected bytes");
+		let bytes = data.data;
 
 		println!("bytes = {:?}", bytes);
-		assert!(bytes == test);
+		assert_eq!(bytes, test);
+		assert_eq!(data.meta_data, bytes);
 	});
 }
 
@@ -148,15 +154,15 @@ fn test_offchain_data_key() {
 		let block_number_one = System::current_block_number();
 		let key_one = storage::offchain_data_key::<Test>(block_number_one);
 
-		assert!(key_one.is_empty() == false);
-		assert!(storage::OFFCHAIN_KEY_PREFIX.len() != key_one.len());
+		assert_eq!(key_one.is_empty(), false);
+		assert_ne!(storage::OFFCHAIN_KEY_PREFIX.len(), key_one.len());
 
 		let block_number_two = System::current_block_number() + 1;
 		let key_two = storage::offchain_data_key::<Test>(block_number_two);
 
-		assert!(key_one.is_empty() == false);
-		assert!(storage::OFFCHAIN_KEY_PREFIX.len() != key_two.len());
-		assert!(key_one != key_two);
+		assert_eq!(key_one.is_empty(), false);
+		assert_ne!(storage::OFFCHAIN_KEY_PREFIX.len(), key_two.len());
+		assert_ne!(key_one, key_two);
 	});
 }
 
@@ -164,7 +170,7 @@ fn test_offchain_data_key() {
 fn test_set_offchain_storage_data_for_block_number() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let data = vec![1,2,3,4,5];
-		let storage_data = storage::OffchainStorageData::new(data);
+		let storage_data = storage::OffchainStorageData::new(data, vec![]);
 
 		let block_number = System::current_block_number();
 		storage::set_offchain_storage_data::<Test>(block_number, &storage_data, true);
@@ -177,7 +183,7 @@ fn test_offchain_storage_data_for_block_number() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 
 		let data = vec![1,2,3,4,5];
-		let storage_data = storage::OffchainStorageData::new(data);
+		let storage_data = storage::OffchainStorageData::new(data, vec![]);
 
 		let block_number = System::current_block_number();
 		storage::set_offchain_storage_data::<Test>(block_number, &storage_data, true);
@@ -200,7 +206,7 @@ fn test_set_offchain_storage_data_for_key() {
 		let data = vec![1,2,3,4,5];
 		let key = b"test_key".to_vec();
 
-		let storage_data = storage::OffchainStorageData::new(data);
+		let storage_data = storage::OffchainStorageData::new(data, vec![]);
 
 
 		storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
@@ -214,7 +220,6 @@ fn test_offchain_storage_data_for_key() {
 		let data = vec![1,2,3,4,5];
 		let key = b"test_key".to_vec();
 
-		let storage_data = storage::OffchainStorageData::new(data);
 		storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
 
 		let result = storage::offchain_storage_data_for_key(&key);

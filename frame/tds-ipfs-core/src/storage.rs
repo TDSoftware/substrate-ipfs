@@ -94,6 +94,16 @@ pub fn offchain_data<T: Config>(block_number: T::BlockNumber) -> Result<Offchain
 	}
 }
 
+pub fn clear_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, is_in_offchain_context: bool) {
+	if is_in_offchain_context {
+		let mut storage_ref = StorageValueRef::persistent(key);
+		storage_ref.clear();
+	}
+	else {
+		offchain_index::clear(key);
+	}
+}
+
 /// Creates a unique storage key/identifier for a certain stored or to be stored data set
 ///
 /// # Arguments

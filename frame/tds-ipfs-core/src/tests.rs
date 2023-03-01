@@ -102,7 +102,6 @@ fn test_offchain_storage_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 
 		let data = vec![1,2,3,];
-		let data_1 = OffchainStorageData::new(data);
 		let test_meta = vec![6, 1, 2, 3, 4];
 		let data_1 = OffchainStorageData::new(data, test_meta);
 		let encode = data_1.encode();
@@ -220,6 +219,7 @@ fn test_offchain_storage_data_for_key() {
 		let data = vec![1,2,3,4,5];
 		let key = b"test_key".to_vec();
 
+		let storage_data = storage::OffchainStorageData::new(data, vec![]);
 		storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
 
 		let result = storage::offchain_storage_data_for_key(&key);

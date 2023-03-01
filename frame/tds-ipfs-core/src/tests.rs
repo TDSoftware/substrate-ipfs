@@ -233,3 +233,38 @@ fn test_offchain_storage_data_for_key() {
 		}
 	});
 }
+
+#[test]
+fn test_offchain_storage_data_for_key_and_clear_afterwards() {
+	ExtBuilder::default().build_and_execute_for_offchain(|| {
+		let data = vec![1,2,3,4,5];
+		let key = b"test_key".to_vec();
+
+		let storage_data = storage::OffchainStorageData::new(data, vec![]);
+		storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
+
+		// without clearing we get data back
+		let result = storage::offchain_storage_data_for_key(&key);
+		assert_ok!(&result);
+
+		if let Ok(Some(offchain_data_from_storage)) = result {
+			assert_eq!(offchain_data_from_storage.data, storage_data.data)
+		}
+		else {
+			assert!(false)
+		}
+
+		storage::clear_offchain_storage_data_for_key::<Test>(&key, true);
+		let result_after_clear  = storage::offchain_storage_data_for_key(&key);
+
+		assert_ok!(&result_after_clear);
+
+		//after clear there is no data for this
+		if let Ok(None) = result_after_clear {
+			assert!(true)
+		} else {
+			// will fail if we find something
+			assert!(false)
+		}
+	});
+}

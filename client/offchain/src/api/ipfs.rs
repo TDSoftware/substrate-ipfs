@@ -625,7 +625,7 @@ mod tests {
 
 		let rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {
-			let (ipfs, fut): (Ipfs<ipfs::TestTypes>, _) =
+			let (ipfs, fut): (Ipfs<rust_ipfs::TestTypes>, _) =
 			ipfs::UninitializedIpfs::new(options).start().await.unwrap();
 			tokio::task::spawn(fut);
 			ipfs

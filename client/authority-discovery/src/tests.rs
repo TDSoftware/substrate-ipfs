@@ -30,6 +30,7 @@ use libp2p::core::{
 	PeerId,
 };
 use std::{collections::HashSet, sync::Arc};
+use libp2p::identity::Keypair;
 
 use sp_authority_discovery::AuthorityId;
 use sp_core::crypto::key_types;
@@ -91,7 +92,7 @@ fn cryptos_are_compatible() {
 	let libp2p_public = libp2p_secret.public();
 
 	let sp_core_secret = {
-		let libp2p::identity::Keypair::Ed25519(libp2p_ed_secret) = libp2p_secret.clone();
+		let libp2p::identity::Keypair::Ed25519(libp2p_ed_secret): Keypair = libp2p_secret.clone() else { panic!("Error"); };
 		sp_core::ed25519::Pair::from_seed_slice(&libp2p_ed_secret.secret().as_ref()).unwrap()
 	};
 	let sp_core_public = sp_core_secret.public();

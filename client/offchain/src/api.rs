@@ -374,7 +374,7 @@ mod tests {
 	use sc_peerset::ReputationChange;
 	use sp_core::offchain::{DbExternalities, Externalities};
 	use std::time::SystemTime;
-	use ::ipfs::TestTypes;
+	use ::rust_ipfs::TestTypes;
 
 	impl AsyncApi<TestTypes> {
 		/// Creates new Offchain extensions API implementation and the asynchronous processing part but without IPFS Node.

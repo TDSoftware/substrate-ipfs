@@ -42,7 +42,6 @@ use tracing_futures::Instrument;
 
 mod prometheus_future;
 
-
 /// Default task group name.
 pub const DEFAULT_GROUP_NAME: &str = "default";
 
@@ -313,7 +312,7 @@ pub struct TaskManager {
 	/// The registry of all running tasks.
 	task_registry: TaskRegistry,
 	/// IPFS runtime for request/response based communication with the IPFS nodes
-	pub ipfs_rt: std::sync::Arc<parking_lot::Mutex<tokio::runtime::Runtime>>
+	pub ipfs_rt: std::sync::Arc<parking_lot::Mutex<tokio::runtime::Runtime>>,
 }
 
 impl TaskManager {
@@ -537,18 +536,19 @@ impl TaskRegistry {
 }
 
 mod tests {
-    use prometheus_endpoint::{Registry, PrometheusError};
-    use tokio::runtime::Handle;
+	use prometheus_endpoint::{PrometheusError, Registry};
+	use tokio::runtime::Handle;
 
-    use crate::TaskManager;
+	use crate::TaskManager;
 
-	 impl TaskManager {
+	impl TaskManager {
 		/// Creates a TaskManager instance with test setup
 		pub fn new_for_testing(
 			tokio_handle: Handle,
 			prometheus_registry: Option<&Registry>,
 		) -> Result<Self, PrometheusError> {
-			let ipfs_rt = tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
+			let ipfs_rt =
+				tokio::runtime::Runtime::new().expect("Could not start the IPFS runtime!");
 			Self::new(tokio_handle, ipfs_rt, prometheus_registry)
 		}
 	}

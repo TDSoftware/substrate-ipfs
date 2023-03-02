@@ -105,8 +105,9 @@ use constants::{currency::*, time::*};
 use sp_runtime::generic::Era;
 
 // Import pallets
-pub use pallet_tds_ipfs_core;
 pub use pallet_tds_ipfs;
+pub use pallet_tds_ipfs_core;
+pub use pallet_tds_ipfs_runtime_api;
 
 /// Generated voter bag information.
 mod voter_bags;
@@ -1774,7 +1775,7 @@ construct_runtime!(
 		FastUnstake: pallet_fast_unstake,
 		MessageQueue: pallet_message_queue,
 		IpfsCore: pallet_tds_ipfs_core,
-		Ipfs: pallet_tds_ipfs,
+		Ipfs: pallet_tds_ipfs
 	}
 );
 
@@ -1950,6 +1951,16 @@ impl_runtime_apis! {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
 			Executive::offchain_worker(header)
 		}
+	}
+
+	impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
+		fn get_value() -> u32 {
+			//Ipfs::get_value().unwrap_or(0)
+			//pallet_tds_ipfs::test();
+			Ipfs::test();
+
+			666
+		 }
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {

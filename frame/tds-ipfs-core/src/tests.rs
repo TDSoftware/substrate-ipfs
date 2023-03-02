@@ -1,7 +1,11 @@
-use codec::{Encode, Decode};
-use frame_support::{assert_ok};
+use crate::{
+	mock::*,
+	storage::{self, OffchainStorageData},
+	IpfsCommand, TypeEquality,
+};
+use codec::{Decode, Encode};
+use frame_support::assert_ok;
 use sp_runtime::traits::BlockNumberProvider;
-use crate::{mock::*, storage::{self, OffchainStorageData}, IpfsCommand, TypeEquality};
 
 #[test]
 fn test_generate_id() {
@@ -18,7 +22,11 @@ fn test_addresses_to_utf8_safe_bytes() {
 		log::debug!("{:?}", result);
 
 		assert!(result.len() > 0);
-		let data = [116, 101, 115, 116, 47, 98, 121, 116, 101, 115, 47, 195, 182, 195, 164, 195, 188, 195, 159].to_vec();
+		let data = [
+			116, 101, 115, 116, 47, 98, 121, 116, 101, 115, 47, 195, 182, 195, 164, 195, 188, 195,
+			159,
+		]
+		.to_vec();
 		assert_eq!(result, data);
 	});
 }
@@ -87,7 +95,7 @@ fn test_ipfs_command_type_equality() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let cmd_add_bytes_one = IpfsCommand::AddBytes(1);
 		let cmd_add_bytes_two = IpfsCommand::AddBytes(0);
-		let cmd_cat_bytes = IpfsCommand::CatBytes(vec![3,4,6,8,9]);
+		let cmd_cat_bytes = IpfsCommand::CatBytes(vec![3, 4, 6, 8, 9]);
 
 		let cmp_add_bytes = cmd_add_bytes_one.eq_type(&cmd_add_bytes_two);
 		assert!(cmp_add_bytes);
@@ -100,8 +108,7 @@ fn test_ipfs_command_type_equality() {
 #[test]
 fn test_offchain_storage_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
-
-		let data = vec![1,2,3,];
+		let data = vec![1, 2, 3];
 		let data_1 = OffchainStorageData::new(data);
 		let encode = data_1.encode();
 
@@ -113,12 +120,11 @@ fn test_offchain_storage_data() {
 	});
 }
 
-
 #[test]
 fn test_set_offchain_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let block_number = System::current_block_number();
-		let test = vec![6,1,2,3,4];
+		let test = vec![6, 1, 2, 3, 4];
 
 		storage::set_offchain_data::<Test>(block_number, test.clone(), true);
 		// no assertions here, but set_offchain_data would panic in case something went wrong
@@ -129,7 +135,7 @@ fn test_set_offchain_data() {
 fn test_offchain_data() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
 		let block_number = System::current_block_number();
-		let test = vec![6,1,2,3,4];
+		let test = vec![6, 1, 2, 3, 4];
 
 		storage::set_offchain_data::<Test>(block_number, test.clone(), true);
 		let offchain_data = storage::offchain_data::<Test>(block_number);
@@ -163,7 +169,7 @@ fn test_offchain_data_key() {
 #[test]
 fn test_set_offchain_storage_data_for_block_number() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
-		let data = vec![1,2,3,4,5];
+		let data = vec![1, 2, 3, 4, 5];
 		let storage_data = storage::OffchainStorageData::new(data);
 
 		let block_number = System::current_block_number();
@@ -175,8 +181,7 @@ fn test_set_offchain_storage_data_for_block_number() {
 #[test]
 fn test_offchain_storage_data_for_block_number() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
-
-		let data = vec![1,2,3,4,5];
+		let data = vec![1, 2, 3, 4, 5];
 		let storage_data = storage::OffchainStorageData::new(data);
 
 		let block_number = System::current_block_number();
@@ -187,8 +192,7 @@ fn test_offchain_storage_data_for_block_number() {
 
 		if let Ok(Some(offchain_data_from_storage)) = result {
 			assert_eq!(offchain_data_from_storage.data, storage_data.data)
-		}
-		else {
+		} else {
 			assert!(false)
 		}
 	});
@@ -197,11 +201,10 @@ fn test_offchain_storage_data_for_block_number() {
 #[test]
 fn test_set_offchain_storage_data_for_key() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
-		let data = vec![1,2,3,4,5];
+		let data = vec![1, 2, 3, 4, 5];
 		let key = b"test_key".to_vec();
 
 		let storage_data = storage::OffchainStorageData::new(data);
-
 
 		storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
 		// no assertions here, but set_offchain_data would panic in case something went wrong
@@ -211,7 +214,7 @@ fn test_set_offchain_storage_data_for_key() {
 #[test]
 fn test_offchain_storage_data_for_key() {
 	ExtBuilder::default().build_and_execute_for_offchain(|| {
-		let data = vec![1,2,3,4,5];
+		let data = vec![1, 2, 3, 4, 5];
 		let key = b"test_key".to_vec();
 
 		let storage_data = storage::OffchainStorageData::new(data);
@@ -222,8 +225,7 @@ fn test_offchain_storage_data_for_key() {
 
 		if let Ok(Some(offchain_data_from_storage)) = result {
 			assert_eq!(offchain_data_from_storage.data, storage_data.data)
-		}
-		else {
+		} else {
 			assert!(false)
 		}
 	});

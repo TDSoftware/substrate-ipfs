@@ -91,7 +91,6 @@ pub struct OffchainWorkers<Client, Block: traits::Block> {
 
 impl<Client, Block: traits::Block> OffchainWorkers<Client, Block> {
 	/// Creates new [`OffchainWorkers`].
-	///
 	pub fn new(client: Arc<Client>, ipfs_rt: Arc<Mutex<tokio::runtime::Runtime>>) -> Self {
 		let (ipfs_node, ipfs_info) = std::thread::spawn(move || {
 			let ipfs_rt = ipfs_rt.lock();

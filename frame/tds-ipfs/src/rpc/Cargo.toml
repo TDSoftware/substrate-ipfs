@@ -1,0 +1,35 @@
+[package]
+name = 'pallet-tds-ipfs-rpc'
+version = "4.0.0-dev"
+description = "FRAME pallet that provides a almost complete set of extrinsics for interacting with an IPFS ocw"
+authors = ['Stefan Lang <https://github.com/langi667>']
+homepage = "https://substrate.io/"
+edition = '2021'
+license = "Apache-2.0"
+publish = false
+repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+
+jsonrpsee = { version = "0.16.2", features = ["client-core", "server", "macros"] }
+
+sp-api = { default-features = false, version = "4.0.0-dev", path = "../../../../primitives/api" }
+sp-blockchain = { default-features = false, version = "4.0.0-dev", path = "../../../../primitives/blockchain" }
+sp-runtime = { default-features = false, version = "7.0.0", path = "../../../../primitives/runtime" }
+
+# local packages
+pallet-tds-ipfs-runtime-api = { path = "./runtime-api", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+  "sp-api/std",
+  "sp-runtime/std",
+  "pallet-tds-ipfs-runtime-api/std"
+]

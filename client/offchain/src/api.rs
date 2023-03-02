@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, str::FromStr, sync::Arc, thread::sleep, borrow::{BorrowMut}};
+use std::{borrow::BorrowMut, collections::HashSet, str::FromStr, sync::Arc, thread::sleep};
 
 use crate::NetworkProvider;
 use codec::{Decode, Encode};
@@ -26,8 +26,8 @@ use libp2p::{Multiaddr, PeerId};
 use sp_core::{
 	offchain::{
 		self, HttpError, HttpRequestId, HttpRequestStatus, IpfsRequest, IpfsRequestId,
-		IpfsRequestStatus, OffchainStorage, OpaqueMultiaddr,
-		OpaqueNetworkState, StorageKind, Timestamp,
+		IpfsRequestStatus, OffchainStorage, OpaqueMultiaddr, OpaqueNetworkState, StorageKind,
+		Timestamp,
 	},
 	OpaquePeerId,
 };
@@ -229,10 +229,8 @@ impl offchain::Externalities for Api {
 
 	fn ipfs_request_start(&mut self, request: IpfsRequest) -> Result<IpfsRequestId, ()> {
 		match self.ipfs.borrow_mut() {
-    		Some(ipfs) => {
-				ipfs.request_start(request)
-			},
-    		None => Err(()),
+			Some(ipfs) => ipfs.request_start(request),
+			None => Err(()),
 		}
 	}
 
@@ -241,12 +239,9 @@ impl offchain::Externalities for Api {
 		ids: &[IpfsRequestId],
 		deadline: Option<Timestamp>,
 	) -> Vec<IpfsRequestStatus> {
-
 		match self.ipfs.borrow_mut() {
-    		Some(ipfs) => {
-				ipfs.response_wait(ids, deadline)
-			},
-    		None => Vec::new(),
+			Some(ipfs) => ipfs.response_wait(ids, deadline),
+			None => Vec::new(),
 		}
 	}
 
@@ -325,7 +320,7 @@ pub(crate) struct AsyncApi<I: ::rust_ipfs::IpfsTypes> {
 	ipfs: Option<ipfs::IpfsWorker<I>>,
 }
 
-impl<I: ::rust_ipfs::IpfsTypes> AsyncApi<I>  {
+impl<I: ::rust_ipfs::IpfsTypes> AsyncApi<I> {
 	/// Creates new Offchain extensions API implementation and the asynchronous processing part.
 	pub fn new(
 		network_provider: Arc<dyn NetworkProvider + Send + Sync>,
@@ -359,11 +354,11 @@ impl<I: ::rust_ipfs::IpfsTypes> AsyncApi<I>  {
 	}
 }
 
-
 #[cfg(test)]
 
 mod tests {
 	use super::*;
+	use ::ipfs::TestTypes;
 	use libp2p::PeerId;
 	use sc_client_db::offchain::LocalStorage;
 	use sc_network_common::{
@@ -374,10 +369,10 @@ mod tests {
 	use sc_peerset::ReputationChange;
 	use sp_core::offchain::{DbExternalities, Externalities};
 	use std::time::SystemTime;
-	use ::ipfs::TestTypes;
 
 	impl AsyncApi<TestTypes> {
-		/// Creates new Offchain extensions API implementation and the asynchronous processing part but without IPFS Node.
+		/// Creates new Offchain extensions API implementation and the asynchronous processing part
+		/// but without IPFS Node.
 		pub fn http(
 			network_provider: Arc<dyn NetworkProvider + Send + Sync>,
 			is_validator: bool,

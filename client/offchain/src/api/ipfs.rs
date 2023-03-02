@@ -12,70 +12,70 @@
 //! https://github.com/rs-ipfs/substrate/blob/2f565db044133cacfdfc166ca9b96594644e34e9/client/offchain/src/api/ipfs.rs
 
 use crate::api::timestamp;
-use cid::{Cid};
+use cid::Cid;
 use fnv::FnvHashMap;
-use futures::{future, prelude::*, pin_mut};
-use rust_ipfs::unixfs::UnixfsStatus;
+use futures::{future, pin_mut, prelude::*};
 use rust_ipfs::{
-	BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes,
-	Multiaddr, MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
+	unixfs::UnixfsStatus, BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes, Multiaddr,
+	MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
 };
 
-use log::{error};
+use log::error;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
 };
 
-use std::fmt::Debug;
-use std::task::{Poll, Context};
 use std::{
 	convert::TryInto,
-	fmt, mem,
+	fmt,
+	fmt::Debug,
+	mem,
 	pin::Pin,
 	str,
+	task::{Context, Poll},
 };
 
 // wasm-friendly implementations of Ipfs::{add, get}
-async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<Cid, rust_ipfs::Error> {
+async fn ipfs_add<T: IpfsTypes>(
+	ipfs: &Ipfs<T>,
+	data: Vec<u8>,
+	version: u8,
+) -> Result<Cid, rust_ipfs::Error> {
 	let cid_version = cid_version_from_raw(version);
 	let data_packed = tokio_stream::once(data).boxed();
 	let mut data_stream = ipfs.add_unixfs_with_cid_version(cid_version, data_packed).await?;
 
-	let mut result: Result<Cid, rust_ipfs::Error> = Result::Err(rust_ipfs::Error::msg("Unknown error"));
+	let mut result: Result<Cid, rust_ipfs::Error> =
+		Result::Err(rust_ipfs::Error::msg("Unknown error"));
 	while let Some(status) = data_stream.next().await {
-        match status {
-            UnixfsStatus::ProgressStatus {
-                written,
-                total_size,
-            } => match total_size {
-                Some(size) => tracing::debug!("{written} out of {size} stored"),
-                None => tracing::debug!("{written} been stored"),
-            },
-            UnixfsStatus::FailedStatus {
-                written: _,
-                total_size: _,
-                error: _,
-            } => {
-                result = Result::Err(rust_ipfs::Error::msg("Error adding file"))
-            }
-            UnixfsStatus::CompletedStatus { path, written, .. } => {
-                tracing::debug!("{written} been stored with path {path}");
+		match status {
+			UnixfsStatus::ProgressStatus { written, total_size } => match total_size {
+				Some(size) => tracing::debug!("{written} out of {size} stored"),
+				None => tracing::debug!("{written} been stored"),
+			},
+			UnixfsStatus::FailedStatus { written: _, total_size: _, error: _ } =>
+				result = Result::Err(rust_ipfs::Error::msg("Error adding file")),
+			UnixfsStatus::CompletedStatus { path, written, .. } => {
+				tracing::debug!("{written} been stored with path {path}");
 				let cid_str = path.to_string().replace("/ipfs/", "");
 
 				match Cid::try_from(cid_str) {
-        			Ok(cid) => result = Ok(cid),
-        			Err(_) => result = Err(rust_ipfs::Error::msg("Unable to upload file")),
-   				}
-            }
-        }
-    }
+					Ok(cid) => result = Ok(cid),
+					Err(_) => result = Err(rust_ipfs::Error::msg("Unable to upload file")),
+				}
+			},
+		}
+	}
 
 	tracing::info!("IPFS add file result: {:?}", result);
 	result
 }
 
-async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {
+async fn ipfs_get<T: IpfsTypes>(
+	ipfs: &Ipfs<T>,
+	path: IpfsPath,
+) -> Result<Vec<u8>, rust_ipfs::Error> {
 	let path_copy = path.clone();
 	let stream_result = ipfs.cat_unixfs(path, None).await;
 	let default_error_msg = "Unable to cat file: ".to_string() + &path_copy.to_string();
@@ -90,24 +90,23 @@ async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8
 			match stream.next().await {
 				Some(Ok(bytes)) => {
 					data.append(&mut bytes.clone());
-				}
-				Some(Err( _ )) => {
-					return Err(default_error);
-				}
-				None => {
-					break
-				}
+				},
+				Some(Err(_)) => {
+					return Err(default_error)
+				},
+				None => break,
 			}
 		}
 		Ok(data)
-	}
-	else {
+	} else {
 		Err(rust_ipfs::Error::msg("Unable to upload file"))
 	}
 }
 
 /// Creates a pair of [`IpfsApi`] and [`IpfsWorker`].
-pub fn ipfs<I: ::rust_ipfs::IpfsTypes>(ipfs_node: ::rust_ipfs::Ipfs<I>) -> (IpfsApi, IpfsWorker<I>) {
+pub fn ipfs<I: ::rust_ipfs::IpfsTypes>(
+	ipfs_node: ::rust_ipfs::Ipfs<I>,
+) -> (IpfsApi, IpfsWorker<I>) {
 	let (to_worker, from_api) = tracing_unbounded("mpsc_ocw_to_ipfs_worker", 10000_00);
 	let (to_api, from_worker) = tracing_unbounded("mpsc_ocw_to_ipfs_api", 10000_00);
 
@@ -126,12 +125,7 @@ pub fn ipfs<I: ::rust_ipfs::IpfsTypes>(ipfs_node: ::rust_ipfs::Ipfs<I>) -> (Ipfs
 }
 // TODO: TDS write test case
 fn cid_version_from_raw(raw_version: u8) -> cid::Version {
-	let ret_val = if raw_version <= 0 {
-		cid::Version::V0
-	}
-	else {
-		cid::Version::V1
-	};
+	let ret_val = if raw_version <= 0 { cid::Version::V0 } else { cid::Version::V1 };
 
 	ret_val
 }
@@ -354,7 +348,7 @@ pub enum IpfsNativeResponse {
 	Peers(Vec<Connection>),
 	Publish(()),
 	RemoveListeningAddr(()),
-	RemoveBlock(/*Cid*/),
+	RemoveBlock(/* Cid */),
 	RemovePin(()),
 	Subscribe(SubscriptionStream), /* TODO: actually using the SubscriptionStream would require
 	                                * it to be stored within the node. */
@@ -626,7 +620,7 @@ mod tests {
 		let rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {
 			let (ipfs, fut): (Ipfs<ipfs::TestTypes>, _) =
-			ipfs::UninitializedIpfs::new(options).start().await.unwrap();
+				ipfs::UninitializedIpfs::new(options).start().await.unwrap();
 			tokio::task::spawn(fut);
 			ipfs
 		});

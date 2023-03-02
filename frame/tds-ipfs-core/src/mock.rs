@@ -1,17 +1,14 @@
-use crate::{self as pallet_tds_ipfs_core,
-	multiple_bytes_to_utf8_safe_bytes,
-	generate_id,
-	addresses_to_utf8_safe_bytes,
-	ipfs_request,
-	IpfsRequest,
-	IpfsResponse,
-	Error};
+use crate::{
+	self as pallet_tds_ipfs_core, addresses_to_utf8_safe_bytes, generate_id, ipfs_request,
+	multiple_bytes_to_utf8_safe_bytes, Error, IpfsRequest, IpfsResponse,
+};
 
-use frame_support::{parameter_types};
+use frame_support::parameter_types;
 
 use sp_runtime::{
-  testing::Header,
-  traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr, OffchainDbExt},
+	offchain::{OffchainDbExt, OpaqueMultiaddr},
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
 };
 
 use sp_core::{
@@ -25,12 +22,12 @@ type Block = frame_system::mocking::MockBlock<Test>;
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
   pub enum Test where
-    Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic,
+	Block = Block,
+	NodeBlock = Block,
+	UncheckedExtrinsic = UncheckedExtrinsic,
   {
-    System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    TDSIpfsCore: pallet_tds_ipfs_core::{Pallet, Call, Storage, Event<T>},
+	System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	TDSIpfsCore: pallet_tds_ipfs_core::{Pallet, Call, Storage, Event<T>},
 	RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
   }
 );
@@ -41,37 +38,37 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-  type BaseCallFilter = frame_support::traits::Everything;
-  type BlockWeights = ();
-  type BlockLength = ();
-  type DbWeight = ();
-  type RuntimeOrigin = RuntimeOrigin;
-  type MaxConsumers = frame_support::traits::ConstU32<16>;
-  type RuntimeCall = RuntimeCall;
-  type Index = u64;
-  type BlockNumber = u64;
-  type Hash = H256;
-  type Hashing = BlakeTwo256;
-  type AccountId = u64;
-  type Lookup = IdentityLookup<Self::AccountId>;
-  type Header = Header;
-  type RuntimeEvent = RuntimeEvent;
-  type BlockHashCount = BlockHashCount;
-  type Version = ();
-  type PalletInfo = PalletInfo;
-  type AccountData = ();
-  type OnNewAccount = ();
-  type OnKilledAccount = ();
-  type SystemWeightInfo = ();
-  type SS58Prefix = SS58Prefix;
-  type OnSetCode = ();
+	type BaseCallFilter = frame_support::traits::Everything;
+	type BlockWeights = ();
+	type BlockLength = ();
+	type DbWeight = ();
+	type RuntimeOrigin = RuntimeOrigin;
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type RuntimeCall = RuntimeCall;
+	type Index = u64;
+	type BlockNumber = u64;
+	type Hash = H256;
+	type Hashing = BlakeTwo256;
+	type AccountId = u64;
+	type Lookup = IdentityLookup<Self::AccountId>;
+	type Header = Header;
+	type RuntimeEvent = RuntimeEvent;
+	type BlockHashCount = BlockHashCount;
+	type Version = ();
+	type PalletInfo = PalletInfo;
+	type AccountData = ();
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
+	type SystemWeightInfo = ();
+	type SS58Prefix = SS58Prefix;
+	type OnSetCode = ();
 }
 
 impl pallet_randomness_collective_flip::Config for Test {}
 
 impl pallet_tds_ipfs_core::Config for Test {
-  type RuntimeEvent = RuntimeEvent;
-  type IpfsRandomness = RandomnessCollectiveFlip;
+	type RuntimeEvent = RuntimeEvent;
+	type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
 #[derive(Default)]
@@ -102,8 +99,9 @@ impl ExtBuilder {
 	pub fn build_for_offchain(self) -> sp_io::TestExternalities {
 		let mut test_externalities = sp_io::TestExternalities::default();
 
-		let (offchain, _ ) = testing::TestOffchainExt::with_offchain_db(test_externalities.offchain_db());
-		let (pool, _ ) = testing::TestTransactionPoolExt::new();
+		let (offchain, _) =
+			testing::TestOffchainExt::with_offchain_db(test_externalities.offchain_db());
+		let (pool, _) = testing::TestTransactionPoolExt::new();
 
 		test_externalities.register_extension(OffchainWorkerExt::new(offchain.clone()));
 		test_externalities.register_extension(TransactionPoolExt::new(pool));
@@ -111,10 +109,9 @@ impl ExtBuilder {
 
 		test_externalities
 	}
-
 }
 
-pub fn mock_generate_id() ->  [u8; 32] {
+pub fn mock_generate_id() -> [u8; 32] {
 	let pair = generate_id::<Test>();
 	pair
 }

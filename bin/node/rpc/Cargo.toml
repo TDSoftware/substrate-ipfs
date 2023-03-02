@@ -38,3 +38,4 @@ sp-keystore = { version = "0.13.0", path = "../../../primitives/keystore" }
 sp-runtime = { version = "7.0.0", path = "../../../primitives/runtime" }
 substrate-frame-rpc-system = { version = "4.0.0-dev", path = "../../../utils/frame/rpc/system" }
 substrate-state-trie-migration-rpc = { version = "4.0.0-dev", path = "../../../utils/frame/rpc/state-trie-migration-rpc/" }
+pallet-tds-ipfs-rpc = { version = "4.0.0-dev", path = "../../../frame/tds-ipfs/src/rpc" }

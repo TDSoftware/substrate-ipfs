@@ -115,6 +115,7 @@ pallet-whitelist = { version = "4.0.0-dev", default-features = false, path = "..
 # Additional pallets
 pallet-tds-ipfs-core = { version = "4.0.0-dev", default-features = false, path = "../../../frame/tds-ipfs-core" }
 pallet-tds-ipfs = { version = "4.0.0-dev", default-features = false, path = "../../../frame/tds-ipfs" }
+pallet-tds-ipfs-runtime-api = { version = "4.0.0-dev", default-features = false, path = "../../../frame/tds-ipfs/src/rpc/runtime-api" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", path = "../../../utils/wasm-builder", optional = true }
@@ -212,6 +213,7 @@ std = [
 	"substrate-wasm-builder",
 	"pallet-tds-ipfs-core/std",
 	"pallet-tds-ipfs/std",
+	"pallet-tds-ipfs-runtime-api/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

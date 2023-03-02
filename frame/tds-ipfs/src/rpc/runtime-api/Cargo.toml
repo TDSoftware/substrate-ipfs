@@ -1,0 +1,59 @@
+[package]
+name = 'pallet-tds-ipfs-runtime-api'
+version = "4.0.0-dev"
+description = "FRAME pallet that provides a almost complete set of extrinsics for interacting with an IPFS ocw"
+authors = ['Stefan Lang <https://github.com/langi667>']
+homepage = "https://substrate.io/"
+edition = '2021'
+license = "Apache-2.0"
+publish = false
+repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+sp-api = { default-features = false, version = "4.0.0-dev", path = "../../../../../primitives/api" }
+
+[features]
+default = ["std"]
+std = [
+    "sp-api/std",
+]
+
+# codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+# 	"derive",
+# ] }
+
+# scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+# frame-support = { default-features = false, version = "4.0.0-dev", path = "../../frame/support" }
+# frame-system = { default-features = false, version = "4.0.0-dev", path = "../../frame/system" }
+# frame-benchmarking = { default-features = false, version = "4.0.0-dev", path = "../../frame/benchmarking", optional = true }
+# sp-core = { default-features = false, version = "7.0.0", path = "../../primitives/core" }
+# sp-io = { default-features = false, version = "7.0.0", path = "../../primitives/io" }
+# sp-std = { default-features = false, version = "5.0.0", path = "../../primitives/std" }
+# sp-runtime = { default-features = false, version = "7.0.0", path = "../../primitives/runtime" }
+# log = { default-features = false, version = "0.4" }
+
+# pallet-tds-ipfs-core = { default-features = false, version = "4.0.0-dev", path = "../../frame/tds-ipfs-core" }
+# serde = { version = "1.0.136", default-features = false, features = ["derive"]}
+
+# [dev-dependencies]
+# pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, path = "../randomness-collective-flip" }
+# sp-keystore = { version = "0.13.0", path = "../../primitives/keystore" }
+
+# [features]
+# default = ['std']
+# std = [
+#     'codec/std',
+#     'scale-info/std',
+#     'frame-support/std',
+#     'frame-system/std',
+#     'frame-benchmarking/std',
+#     'sp-io/std',
+#     'sp-std/std',
+#     'pallet-tds-ipfs-core/std',
+# ]
+
+# runtime-benchmarks = ["frame-benchmarking"]
+# try-runtime = ["frame-support/try-runtime"]

@@ -1,0 +1,33 @@
+[package]
+name = "pallet-tds-ipfs-rpc"
+version = "1.0.0"
+edition = "2021"
+authors = ["Stefan Lang <https://github.com/langi667>"]
+description = 'RPC methods for the TDS-IPFS pallet'
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+
+jsonrpsee = { version = "0.16.2", features = ["server", "macros"] }
+
+# Substrate packages
+
+sp-api = { default-features = false, version = "4.0.0-dev", path = "../../../primitives/api" }
+sp-blockchain = { default-features = false, version = "4.0.0-dev", path = "../../../primitives/blockchain" }
+sp-runtime = { default-features = false, version = "7.0.0", path = "../../../primitives/runtime" }
+
+# local packages
+pallet-tds-ipfs-runtime-api = { path = "./runtime-api", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"sp-api/std",
+	"sp-runtime/std",
+	"pallet-tds-ipfs-runtime-api/std"
+]

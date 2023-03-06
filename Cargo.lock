@@ -3670,6 +3670,7 @@ dependencies = [
  "pallet-sudo",
  "pallet-tds-ipfs",
  "pallet-tds-ipfs-core",
+ "pallet-tds-ipfs-runtime-api",
  "pallet-timestamp",
  "pallet-tips",
  "pallet-transaction-payment",
@@ -5259,6 +5260,7 @@ dependencies = [
  "jsonrpsee",
  "mmr-rpc",
  "node-primitives",
+ "pallet-tds-ipfs-rpc",
  "pallet-transaction-payment-rpc",
  "sc-chain-spec",
  "sc-client-api",
@@ -6825,6 +6827,25 @@ dependencies = [
  "sp-keystore",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-tds-ipfs-rpc"
+version = "1.0.0"
+dependencies = [
+ "jsonrpsee",
+ "pallet-tds-ipfs-runtime-api",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-tds-ipfs-runtime-api"
+version = "1.0.0"
+dependencies = [
+ "sp-api",
 ]
 
 [[package]]

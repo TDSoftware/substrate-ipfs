@@ -107,6 +107,7 @@ use sp_runtime::generic::Era;
 // Import pallets
 pub use pallet_tds_ipfs_core;
 pub use pallet_tds_ipfs;
+pub use pallet_tds_ipfs_runtime_api;
 
 /// Generated voter bag information.
 mod voter_bags;
@@ -1612,6 +1613,12 @@ impl pallet_tds_ipfs::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type IpfsRandomness = RandomnessCollectiveFlip;
+}
+
+impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
+	fn get_value() -> u32 {
+		TemplateModule::get_value().unwrap_or(0)
+	}
 }
 
 impl pallet_whitelist::Config for Runtime {

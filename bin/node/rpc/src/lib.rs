@@ -126,6 +126,7 @@ where
 	use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
 	use substrate_state_trie_migration_rpc::{StateMigration, StateMigrationApiServer};
+	use pallet_tds_ipfs_rpc::{TemplatePallet, TemplateApiServer};
 
 	let mut io = RpcModule::new(());
 	let FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa } = deps;
@@ -179,6 +180,7 @@ where
 
 	io.merge(StateMigration::new(client.clone(), backend, deny_unsafe).into_rpc())?;
 	io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
+	io.merge(TemplatePallet::new(client).into_rpc())?;
 
 	Ok(io)
 }

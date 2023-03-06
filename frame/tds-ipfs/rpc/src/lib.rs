@@ -42,7 +42,7 @@ impl<C, Block> TemplateApiServer<<Block as BlockT>::Hash> for TemplatePallet<C, 
 		// let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
 		//
 		// api.get_value(&at).map_err(runtime_error_into_rpc_err)
-		RpcResult(666) // TODO: Implement
+		666 // TODO: Implement
 	}
 }
 

@@ -7,3 +7,4 @@ sp_api::decl_runtime_apis! {
         fn get_value() -> u32;
     }
 }
+

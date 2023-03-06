@@ -119,6 +119,7 @@ where
 	B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 {
 	use mmr_rpc::{Mmr, MmrApiServer};
+	use pallet_tds_ipfs_rpc::{TemplatePallet, TemplateApiServer};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use sc_consensus_babe_rpc::{Babe, BabeApiServer};
 	use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
@@ -127,7 +128,6 @@ where
 	use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
 	use substrate_state_trie_migration_rpc::{StateMigration, StateMigrationApiServer};
-	use pallet_tds_ipfs_rpc::{TemplatePallet, TemplateApiServer};
 
 	let mut io = RpcModule::new(());
 	let FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa } = deps;
@@ -180,8 +180,9 @@ where
 	)?;
 
 	io.merge(StateMigration::new(client.clone(), backend, deny_unsafe).into_rpc())?;
-	io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
 	io.merge(TemplatePallet::new(client.clone()).into_rpc())?;
+	io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
+
 
 	Ok(io)
 }

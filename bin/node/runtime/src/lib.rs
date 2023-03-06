@@ -1615,12 +1615,6 @@ impl pallet_tds_ipfs::Config for Runtime {
 	type IpfsRandomness = RandomnessCollectiveFlip;
 }
 
-impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
-	fn get_value() -> u32 {
-		TemplateModule::get_value().unwrap_or(0)
-	}
-}
-
 impl pallet_whitelist::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
@@ -1905,6 +1899,7 @@ mod benches {
 }
 
 impl_runtime_apis! {
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
@@ -1956,6 +1951,12 @@ impl_runtime_apis! {
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
 			Executive::offchain_worker(header)
+		}
+	}
+
+	impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
+		fn get_value() -> u32 {
+			TemplateModule::get_value().unwrap_or(0)
 		}
 	}
 

@@ -1956,7 +1956,7 @@ impl_runtime_apis! {
 
 	impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
 		fn get_value() -> u32 {
-			TemplateModule::get_value().unwrap_or(0)
+			return 666
 		}
 	}
 

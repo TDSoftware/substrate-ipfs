@@ -319,17 +319,17 @@ impl TryFrom<OpaqueNetworkState> for NetworkState {
 /// Offchain extensions implementation API
 ///
 /// This is the asynchronous processing part of the API.
-pub(crate) struct AsyncApi<I: ::ipfs::IpfsTypes> {
+pub(crate) struct AsyncApi<I: ::rust_ipfs::IpfsTypes> {
 	/// Everything HTTP-related is handled by a different struct.
 	http: Option<http::HttpWorker>,
 	ipfs: Option<ipfs::IpfsWorker<I>>,
 }
 
-impl<I: ::ipfs::IpfsTypes> AsyncApi<I>  {
+impl<I: ::rust_ipfs::IpfsTypes> AsyncApi<I>  {
 	/// Creates new Offchain extensions API implementation and the asynchronous processing part.
 	pub fn new(
 		network_provider: Arc<dyn NetworkProvider + Send + Sync>,
-		ipfs_node: ::ipfs::Ipfs<I>,
+		ipfs_node: ::rust_ipfs::Ipfs<I>,
 		is_validator: bool,
 		shared_http_client: SharedClient,
 	) -> (Api, Self) {

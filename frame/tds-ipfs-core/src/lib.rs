@@ -17,11 +17,11 @@ pub use pallet::*;
 use codec::{Decode, Encode};
 
 use sp_runtime::{
-  offchain::{
-    ipfs,
-    storage::{MutateStorageError, StorageRetrievalError, StorageValueRef},
-  },
-  RuntimeDebug,
+	offchain::{
+		ipfs,
+		storage::{MutateStorageError, StorageRetrievalError, StorageValueRef},
+	},
+	RuntimeDebug,
 };
 
 #[cfg(feature = "std")]
@@ -44,12 +44,11 @@ use frame_support::traits::Randomness;
    Note: Nodes on the network will come to the same value for each id.
 */
 pub fn generate_id<T: Config>() -> [u8; 32] {
-  let payload = (
-
-	T::IpfsRandomness::random(&b"ipfs-request-id"[..]).0,
-	<frame_system::Pallet<T>>::block_number(),
-  );
-  payload.using_encoded(sp_io::hashing::blake2_256)
+	let payload = (
+		T::IpfsRandomness::random(&b"ipfs-request-id"[..]).0,
+		<frame_system::Pallet<T>>::block_number(),
+	);
+	payload.using_encoded(sp_io::hashing::blake2_256)
 }
 
 /** Process each IPFS `command_request` in the offchain worker
@@ -58,9 +57,9 @@ pub fn generate_id<T: Config>() -> [u8; 32] {
   - Make sure each command is successfully before attempting the next
  */
 pub fn ocw_process_command<T: Config>(
-  block_number: T::BlockNumber,
-  command_request: CommandRequest<T>,
-  persistence_key: &[u8; 24],
+	block_number: T::BlockNumber,
+	command_request: CommandRequest<T>,
+	persistence_key: &[u8; 24],
 ) -> Result<Vec<IpfsResponse>, Error<T>> {
 
   let acquire_lock = acquire_command_request_lock::<T>(block_number, &command_request);
@@ -130,7 +129,9 @@ pub fn ocw_process_command<T: Config>(
           },
 
           IpfsCommand::RemoveBlock(ref cid) => {
-            match ipfs_request::<T>(IpfsRequest::RemoveBlock(cid.clone())) {
+			// TODO: TDS add Cid again!
+            // match ipfs_request::<T>(IpfsRequest::RemoveBlock(cid.clone())) {
+			match ipfs_request::<T>(IpfsRequest::RemoveBlock()) {
               Ok(IpfsResponse::Success) => Ok(result.push(IpfsResponse::Success)),
               _ => Err(Error::<T>::RequestFailed),
             }
@@ -217,37 +218,37 @@ pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u
 
 /** Convert a vector of addresses into a comma separated utf8 safe vector of bytes */
 pub fn addresses_to_utf8_safe_bytes(addresses: Vec<OpaqueMultiaddr>) -> Vec<u8> {
-  multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
+	multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
 }
 
 /** Flatten a Vector of bytes into a comma seperated utf8 safe vector of bytes */
 pub fn multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
-  let mut bytes = Vec::<u8>::new();
+	let mut bytes = Vec::<u8>::new();
 
-  for res in response {
-    match str::from_utf8(&res) {
-      Ok(str) =>
-        if bytes.len() == 0 {
-          bytes = Vec::from(str.as_bytes());
-        } else {
-          bytes = [bytes, Vec::from(str.as_bytes())].join(", ".as_bytes());
-        },
-      _ => {},
-    }
-  }
+	for res in response {
+		match str::from_utf8(&res) {
+			Ok(str) =>
+				if bytes.len() == 0 {
+					bytes = Vec::from(str.as_bytes());
+				} else {
+					bytes = [bytes, Vec::from(str.as_bytes())].join(", ".as_bytes());
+				},
+			_ => {},
+		}
+	}
 
-  bytes
+	bytes
 }
 
 /** Using the CommandRequest<T>.identifier we can attempt to create a lock via StorageValueRef,
 leaving behind a block number of when the lock was formed. */
 fn acquire_command_request_lock<T: Config>(
-  block_number: T::BlockNumber,
-  command_request: &CommandRequest<T>,
+	block_number: T::BlockNumber,
+	command_request: &CommandRequest<T>,
 ) -> Result<T::BlockNumber, MutateStorageError<T::BlockNumber, Error<T>>> {
-  let storage = StorageValueRef::persistent(&command_request.identifier);
+	let storage = StorageValueRef::persistent(&command_request.identifier);
 
-  storage.mutate(|command_identifier: Result<Option<T::BlockNumber>, StorageRetrievalError>| {
+	storage.mutate(|command_identifier: Result<Option<T::BlockNumber>, StorageRetrievalError>| {
     match command_identifier {
       Ok(Some(block)) =>
         if block_number != block {
@@ -266,28 +267,28 @@ fn acquire_command_request_lock<T: Config>(
 
 /** Store a list of command identifiers to remove the lock in a following block */
 fn processed_commands<T: Config>(
-  command_request: &CommandRequest<T>,
-  persistence_key: &[u8; 24],
+	command_request: &CommandRequest<T>,
+	persistence_key: &[u8; 24],
 ) -> Result<Vec<[u8; 32]>, MutateStorageError<Vec<[u8; 32]>, ()>> {
-  let processed_commands = StorageValueRef::persistent(persistence_key);
+	let processed_commands = StorageValueRef::persistent(persistence_key);
 
-  processed_commands.mutate(
-    |processed_commands: Result<Option<Vec<[u8; 32]>>, StorageRetrievalError>| {
-      match processed_commands {
-        Ok(Some(mut commands)) => {
-          commands.push(command_request.identifier);
+	processed_commands.mutate(
+		|processed_commands: Result<Option<Vec<[u8; 32]>>, StorageRetrievalError>| {
+			match processed_commands {
+				Ok(Some(mut commands)) => {
+					commands.push(command_request.identifier);
 
-          Ok(commands)
-        },
-        _ => {
-          let mut res = Vec::<[u8; 32]>::new();
-          res.push(command_request.identifier);
+					Ok(commands)
+				},
+				_ => {
+					let mut res = Vec::<[u8; 32]>::new();
+					res.push(command_request.identifier);
 
-          Ok(res)
-        },
-      }
-    },
-  )
+					Ok(res)
+				},
+			}
+		},
+	)
 }
 
 #[frame_support::pallet]

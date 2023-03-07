@@ -2,9 +2,6 @@
 resolver = "2"
 
 members = [
-#	"bin/node-template/node",
-#	"bin/node-template/pallets/template",
-#	"bin/node-template/runtime",
 	"bin/node/bench",
 	"bin/node/cli",
 	"bin/node/executor",
@@ -247,7 +244,6 @@ members = [
 	"utils/frame/rpc/client",
 	"utils/prometheus",
 	"utils/wasm-builder",
-	"utils/ipfs",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates

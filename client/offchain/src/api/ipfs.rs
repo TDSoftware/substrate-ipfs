@@ -12,18 +12,26 @@
 //! https://github.com/rs-ipfs/substrate/blob/2f565db044133cacfdfc166ca9b96594644e34e9/client/offchain/src/api/ipfs.rs
 
 use crate::api::timestamp;
-use cid::{Cid, Codec};
+use cid::{Cid};
 use fnv::FnvHashMap;
-use futures::{future, prelude::*};
-use ipfs::{
-	ipld::dag_pb::PbNode, BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes, Ipld,
+use futures::{future, prelude::*, pin_mut};
+use rust_ipfs::unixfs::UnixfsStatus;
+use rust_ipfs::{
+	BitswapStats, Block, Connection, Ipfs, IpfsPath, IpfsTypes,
 	Multiaddr, MultiaddrWithPeerId, PeerId, PublicKey, SubscriptionStream,
 };
-use log::{error};
+
+use rust_ipfs::path::PathRoot::{
+	Ipld
+};
+
+use log::{error, info};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_core::offchain::{
 	IpfsRequest, IpfsRequestId, IpfsRequestStatus, IpfsResponse, OpaqueMultiaddr, Timestamp,
 };
+use tokio::sync::broadcast::error;
+use std::fmt::Debug;
 use std::{
 	collections::BTreeMap,
 	convert::TryInto,
@@ -33,30 +41,81 @@ use std::{
 	task::{Context, Poll},
 };
 
+const LOG_TARGET: &str = "offchain-worker::http";
+
 // wasm-friendly implementations of Ipfs::{add, get}
-async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<ipfs::Cid, ipfs::Error> {
-	let dag = ipfs.dag();
+async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<Cid, rust_ipfs::Error> {
+	let data_packed = tokio_stream::once(data).boxed();
+	let mut data_stream = ipfs.add_unixfs(data_packed).await?;
 
-	let links: Vec<Ipld> = vec![];
-	let mut pb_node = BTreeMap::<String, Ipld>::new();
-	pb_node.insert("Data".to_string(), data.into());
-	pb_node.insert("Links".to_string(), links.into());
+	let mut result: Result<Cid, rust_ipfs::Error> = Result::Err(rust_ipfs::Error::msg("Unknown error"));
+	while let Some(status) = data_stream.next().await {
+        match status {
+            UnixfsStatus::ProgressStatus {
+                written,
+                total_size,
+            } => match total_size {
+                Some(size) => tracing::debug!("{written} out of {size} stored"),
+                None => tracing::debug!("{written} been stored"),
+            },
+            UnixfsStatus::FailedStatus {
+                written: _,
+                total_size: _,
+                error: _,
+            } => {
+                result = Result::Err(rust_ipfs::Error::msg("Error adding file"))
+            }
+            UnixfsStatus::CompletedStatus { path, written, .. } => {
+                tracing::debug!("{written} been stored with path {path}");
+				let cid_str = path.to_string().replace("/ipfs/", "");
 
-	let codec = if version == 0 {Codec::DagProtobuf} else {Codec::DagCBOR};
+				match Cid::try_from(cid_str) {
+        			Ok(cid) => result = Ok(cid),
+        			Err(_) => result = Err(rust_ipfs::Error::msg("Unable to upload file")),
+   				}
+            }
+        }
+    }
 
-	dag.put(pb_node.into(), codec).await
+	tracing::info!("IPFS add file result: {:?}", result);
+	result
 }
 
-async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, ipfs::Error> {
-	let ipld = ipfs.dag().get(path).await?;
-	let pb_node: PbNode = (&ipld).try_into()?;
-	Ok(pb_node.data)
+async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {
+	let path_copy = path.clone();
+	let stream_result = ipfs.cat_unixfs(path, None).await;
+	let default_error_msg = "Unable to cat file: ".to_string() + &path_copy.to_string();
+
+	let default_error = rust_ipfs::Error::msg(default_error_msg);
+
+	if let Ok(stream) = stream_result {
+		pin_mut!(stream);
+		let mut data = Vec::<u8>::new();
+
+		loop {
+			match stream.next().await {
+				Some(Ok(bytes)) => {
+					data.append(&mut bytes.clone());
+				}
+				Some(Err( _ )) => {
+					return Err(default_error);
+				}
+				None => {
+					break
+				}
+			}
+		}
+		Ok(data)
+	}
+	else {
+		Err(rust_ipfs::Error::msg("Unable to upload file"))
+	}
 }
 
 /// Creates a pair of [`IpfsApi`] and [`IpfsWorker`].
-pub fn ipfs<I: ::ipfs::IpfsTypes>(ipfs_node: ::ipfs::Ipfs<I>) -> (IpfsApi, IpfsWorker<I>) {
-	let (to_worker, from_api) = tracing_unbounded("mpsc_ocw_to_ipfs_worker", 100_00);
-	let (to_api, from_worker) = tracing_unbounded("mpsc_ocw_to_ipfs_api", 100_00);
+pub fn ipfs<I: ::rust_ipfs::IpfsTypes>(ipfs_node: ::rust_ipfs::Ipfs<I>) -> (IpfsApi, IpfsWorker<I>) {
+	let (to_worker, from_api) = tracing_unbounded("mpsc_ocw_to_ipfs_worker", 10000_00);
+	let (to_api, from_worker) = tracing_unbounded("mpsc_ocw_to_ipfs_api", 10000_00);
 
 	let api = IpfsApi {
 		to_worker,
@@ -92,7 +151,7 @@ pub struct IpfsApi {
 enum IpfsApiRequest {
 	Dispatched,
 	Response(IpfsNativeResponse),
-	Fail(ipfs::Error),
+	Fail(rust_ipfs::Error),
 }
 
 impl IpfsApi {
@@ -167,13 +226,17 @@ impl IpfsApi {
 			let next_message = {
 				let mut next_msg = future::maybe_done(self.from_worker.next());
 				futures::executor::block_on(future::select(&mut next_msg, &mut deadline));
+
 				if let future::MaybeDone::Done(msg) = next_msg {
 					msg
 				} else {
+					tracing::info!("No future::MaybeDone::Done");
 					debug_assert!(matches!(deadline, future::MaybeDone::Done(..)));
 					continue
 				}
 			};
+
+			// Update internal state based on received message.
 
 			match next_message {
 				Some(WorkerToApi::Response { id, value }) => match self.requests.remove(&id) {
@@ -185,14 +248,14 @@ impl IpfsApi {
 
 				Some(WorkerToApi::Fail { id, error }) => match self.requests.remove(&id) {
 					Some(IpfsApiRequest::Dispatched) => {
-						log::warn!("IPFS response fail");
+						tracing::info!("IPFS response fail");
 						self.requests.insert(id, IpfsApiRequest::Fail(error));
 					},
 					_ => error!("State mismatch between the API and worker"),
 				},
 
 				None => {
-					error!("IPFS Worker returned None 2: response_wait");
+					error!("IPFS Worker XXX returned None 2: response_wait");
 					return ids
 						.iter()
 						.map(|_| {
@@ -244,25 +307,25 @@ enum WorkerToApi {
 		/// The ID that was passed to the worker.
 		id: IpfsRequestId,
 		/// Error that happened.
-		error: ipfs::Error,
+		error: rust_ipfs::Error,
 	},
 }
 
 /// Must be continuously polled for the [`IpfsApi`] to properly work.
-pub struct IpfsWorker<I: ipfs::IpfsTypes> {
+pub struct IpfsWorker<I: rust_ipfs::IpfsTypes> {
 	/// Used to sends messages to the `IpfsApi`.
 	to_api: TracingUnboundedSender<WorkerToApi>,
 	/// Used to receive messages from the `IpfsApi`.
 	from_api: TracingUnboundedReceiver<ApiToWorker>,
 	/// The engine that runs IPFS requests.
-	ipfs_node: ipfs::Ipfs<I>,
+	ipfs_node: rust_ipfs::Ipfs<I>,
 	/// IPFS requests that are being worked on by the engine.
 	requests: Vec<(IpfsRequestId, IpfsWorkerRequest)>,
 }
 
 /// IPFS request being processed by the worker.
 struct IpfsWorkerRequest(
-	Pin<Box<dyn Future<Output = Result<IpfsNativeResponse, ipfs::Error>> + Send>>,
+	Pin<Box<dyn Future<Output = Result<IpfsNativeResponse, rust_ipfs::Error>> + Send>>,
 );
 
 #[derive(Debug)]
@@ -286,7 +349,7 @@ pub enum IpfsNativeResponse {
 	Peers(Vec<Connection>),
 	Publish(()),
 	RemoveListeningAddr(()),
-	RemoveBlock(Cid),
+	RemoveBlock(/*Cid*/),
 	RemovePin(()),
 	Subscribe(SubscriptionStream), /* TODO: actually using the SubscriptionStream would require
 	                                * it to be stored within the node. */
@@ -385,17 +448,20 @@ impl From<IpfsNativeResponse> for IpfsResponse {
 
 				IpfsResponse::Peers(addrs)
 			},
-			IpfsNativeResponse::RemoveBlock(cid) =>
-				IpfsResponse::RemoveBlock(cid.to_string().into_bytes()),
+			IpfsNativeResponse::RemoveBlock(/*cid*/) => {
+				//let result: vec<u8> = cid.to_string().into_bytes();
+				let result = Vec::<u8>::new();
+				IpfsResponse::RemoveBlock(result)
+			},
 			_ => IpfsResponse::Success,
 		}
 	}
 }
 
-async fn ipfs_request<I: ipfs::IpfsTypes>(
-	ipfs: ipfs::Ipfs<I>,
+async fn ipfs_request<I: rust_ipfs::IpfsTypes>(
+	ipfs: rust_ipfs::Ipfs<I>,
 	request: IpfsRequest,
-) -> Result<IpfsNativeResponse, ipfs::Error> {
+) -> Result<IpfsNativeResponse, rust_ipfs::Error> {
 	match request {
 		IpfsRequest::Addrs => Ok(IpfsNativeResponse::Addrs(ipfs.addrs().await?)),
 		IpfsRequest::AddBytes(data, version) =>
@@ -418,7 +484,7 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 		IpfsRequest::Disconnect(addr) => {
 			let addr_str = str::from_utf8(&addr.0)?;
 			let addr = addr_str.parse::<MultiaddrWithPeerId>()?;
-			Ok(IpfsNativeResponse::Disconnect(ipfs.disconnect(addr).await?))
+			Ok(IpfsNativeResponse::Disconnect(ipfs.disconnect(addr.peer_id).await?))
 		},
 		IpfsRequest::FindPeer(peer_id) => {
 			let peer_id = str::from_utf8(&peer_id)?.parse::<PeerId>()?;
@@ -432,32 +498,43 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 		},
 		IpfsRequest::GetProviders(cid) => {
 			let cid = str::from_utf8(&cid)?.parse()?;
-			Ok(IpfsNativeResponse::GetProviders(ipfs.get_providers(cid).await?))
+			let mut stream = ipfs.get_providers(cid).await?.boxed();
+
+			let mut vec = Vec::<PeerId>::new();
+			while let Some(_providers) = stream.next().await {
+				vec.push(_providers);
+			}
+
+			Ok(IpfsNativeResponse::GetProviders(vec))
 		},
 		IpfsRequest::Identity => {
-			let (pk, addrs) = ipfs.identity().await?;
-			Ok(IpfsNativeResponse::Identity(pk, addrs))
+			let res = ipfs.identity(None).await?;
+			 Ok(IpfsNativeResponse::Identity(res.public_key, res.listen_addrs))
 		},
 		IpfsRequest::InsertPin(cid, recursive) => {
 			let cid = str::from_utf8(&cid)?.parse()?;
 			Ok(IpfsNativeResponse::InsertPin(ipfs.insert_pin(&cid, recursive).await?))
 		},
 		IpfsRequest::LocalAddrs => Ok(IpfsNativeResponse::LocalAddrs(ipfs.addrs_local().await?)),
-		IpfsRequest::LocalRefs => Ok(IpfsNativeResponse::LocalRefs(ipfs.refs_local().await?)),
+		IpfsRequest::LocalRefs => {
+
+			let resp = ipfs.refs_local().await?;
+			Ok(IpfsNativeResponse::LocalRefs(resp))
+		},
 		IpfsRequest::Peers => {
 			Ok(IpfsNativeResponse::Peers(ipfs.peers().await?))
 		},
 		IpfsRequest::Publish { topic, message } => {
-			let ret = ipfs.pubsub_publish(String::from_utf8(topic)?, message).await?;
+			let ret: () = {ipfs.pubsub_publish(String::from_utf8(topic)?, message).await?;};
 			Ok(IpfsNativeResponse::Publish(ret))
 		},
 		IpfsRequest::RemoveListeningAddr(addr) => {
 			let ret = ipfs.remove_listening_address(str::from_utf8(&addr.0)?.parse()?).await?;
 			Ok(IpfsNativeResponse::RemoveListeningAddr(ret))
 		},
-		IpfsRequest::RemoveBlock(cid) => {
-			let cid = str::from_utf8(&cid)?.parse()?;
-			Ok(IpfsNativeResponse::RemoveBlock(ipfs.remove_block(cid).await?))
+		IpfsRequest::RemoveBlock(/*cid*/) => {
+			//let cid = str::from_utf8(&cid)?.parse()?;
+			Ok(IpfsNativeResponse::RemoveBlock(/*ipfs.remove_block(cid).await?*/))
 		},
 		IpfsRequest::RemovePin(cid, recursive) => {
 			let cid = str::from_utf8(&cid)?.parse()?;
@@ -479,7 +556,7 @@ async fn ipfs_request<I: ipfs::IpfsTypes>(
 	}
 }
 
-impl<I: ipfs::IpfsTypes> Future for IpfsWorker<I> {
+impl<I: rust_ipfs::IpfsTypes> Future for IpfsWorker<I> {
 	type Output = ();
 
 	fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
@@ -519,7 +596,7 @@ impl<I: ipfs::IpfsTypes> Future for IpfsWorker<I> {
 	}
 }
 
-impl<I: ipfs::IpfsTypes> fmt::Debug for IpfsWorker<I> {
+impl<I: rust_ipfs::IpfsTypes> fmt::Debug for IpfsWorker<I> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		f.debug_list().entries(self.requests.iter()).finish()
 	}

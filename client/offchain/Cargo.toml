@@ -33,14 +33,15 @@ sc-network-common = { version = "0.10.0-dev", path = "../network/common" }
 sc-peerset = { version = "4.0.0-dev", path = "../peerset" }
 sc-utils = { version = "4.0.0-dev", path = "../utils" }
 tokio = { version = "1.10", default-features = false, features = ["full"] }
+tokio-stream = "0.1"
 sp-api = { version = "4.0.0-dev", path = "../../primitives/api" }
 sp-core = { version = "7.0.0", path = "../../primitives/core" }
 sp-offchain = { version = "4.0.0-dev", path = "../../primitives/offchain" }
 sp-runtime = { version = "7.0.0", path = "../../primitives/runtime" }
 # IPFS
 log = "0.4.8"
-cid = { version = "0.5.1", cid = "*", multihash = "0.10" }
-ipfs = { path = "../../utils/ipfs"}
+cid = { version = "0.9.0", cid = "*", multihash = "0.10" }
+rust-ipfs = { path = "../../utils/rust-ipfs"}
 
 [dev-dependencies]
 lazy_static = "1.4.0"

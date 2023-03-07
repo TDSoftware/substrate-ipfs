@@ -96,6 +96,7 @@ pub struct BitswapRequestHandler<B> {
 	request_receiver: mpsc::Receiver<IncomingRequest>,
 }
 
+
 impl<B: BlockT> BitswapRequestHandler<B> {
 	/// Create a new [`BitswapRequestHandler`].
 	pub fn new(client: Arc<dyn BlockBackend<B> + Send + Sync>) -> (Self, ProtocolConfig) {

@@ -1955,7 +1955,7 @@ impl_runtime_apis! {
 	}
 
 	impl pallet_tds_ipfs_runtime_api::TDSIpfsApi<Block> for Runtime {
-		fn get_value() -> u32 {
+		fn get_file_url() -> u32 {
 			return 666
 		}
 	}

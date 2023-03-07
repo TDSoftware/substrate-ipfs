@@ -4,7 +4,7 @@
 // runtime file (the `runtime/src/lib.rs`)
 sp_api::decl_runtime_apis! {
     pub trait TDSIpfsApi {
-        fn get_value() -> u32;
+        fn get_file_url() -> u32;
     }
 }
 

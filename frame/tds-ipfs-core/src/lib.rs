@@ -14,8 +14,8 @@
 //!
 
 pub use pallet::*;
-
 use codec::{Decode, Encode};
+
 use sp_runtime::{
   offchain::{
     ipfs,
@@ -37,10 +37,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod storage;
 use frame_support::traits::Randomness;
 
 /** Create a "unique" id for each command
-
    Note: Nodes on the network will come to the same value for each id.
 */
 pub fn generate_id<T: Config>() -> [u8; 32] {
@@ -89,8 +89,18 @@ pub fn ocw_process_command<T: Config>(
             }
           },
 
-          IpfsCommand::AddBytes(ref bytes_to_add, ref version) => {
-            match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add.clone(), version.clone())) {
+          IpfsCommand::AddBytes(ref version) => {
+			let bytes_to_add: Vec<u8>;
+
+			if let Ok(data) = storage::offchain_data::<T> (block_number) {
+				log::info!("IPFS AddBytes with data");
+				bytes_to_add = data.clone();
+			} else {
+				log::info!("IPFS AddBytes no data :/");
+				return Err(Error::<T>::RequestFailed);
+			}
+
+			match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add, version.clone())) {
               Ok(IpfsResponse::AddBytes(cid)) =>
                 Ok(result.push(IpfsResponse::AddBytes(cid))),
               _ => Err(Error::<T>::RequestFailed),
@@ -322,7 +332,7 @@ pub mod pallet {
     DisconnectFrom(Vec<u8>),
 
     // Data Commands
-    AddBytes(Vec<u8>, u8),
+    AddBytes(u8),
     CatBytes(Vec<u8>),
     InsertPin(Vec<u8>),
     RemoveBlock(Vec<u8>),
@@ -331,6 +341,20 @@ pub mod pallet {
     // DHT Commands
     FindPeer(Vec<u8>),
     GetProviders(Vec<u8>),
+  }
+
+  pub trait TypeEquality<Rhs = Self>
+  where
+	  Rhs: ?Sized,
+  {
+	  fn eq_type(&self, other: &Rhs) -> bool;
+
+  }
+
+  impl TypeEquality for IpfsCommand {
+	fn eq_type(&self, other: &IpfsCommand) -> bool {
+		sp_core::sp_std::mem::discriminant(self) == sp_core::sp_std::mem::discriminant(other)
+	}
   }
 
   /** CommandRequest is used for issuing requests to an ocw that has IPFS within its runtime.
@@ -388,8 +412,7 @@ pub mod pallet {
   #[pallet::genesis_build]
   impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
     fn build(&self) {
-      // TODO: Check if needed
-      //commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
     }
   }
 }
+

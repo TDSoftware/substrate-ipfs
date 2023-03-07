@@ -11,7 +11,7 @@ use frame_support::{parameter_types};
 
 use sp_runtime::{
   testing::Header,
-  traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr},
+  traits::{BlakeTwo256, IdentityLookup}, offchain::{OpaqueMultiaddr, OffchainDbExt},
 };
 
 use sp_core::{
@@ -94,17 +94,20 @@ impl ExtBuilder {
 
 	pub fn build_and_execute_for_offchain(self, test: impl FnOnce() -> ()) {
 		self.build_for_offchain().execute_with(|| {
+			System::set_block_number(1);
 			test();
 		})
 	}
 
 	pub fn build_for_offchain(self) -> sp_io::TestExternalities {
-		let (offchain, _ ) = testing::TestOffchainExt::new();
+		let mut test_externalities = sp_io::TestExternalities::default();
+
+		let (offchain, _ ) = testing::TestOffchainExt::with_offchain_db(test_externalities.offchain_db());
 		let (pool, _ ) = testing::TestTransactionPoolExt::new();
 
-		let mut test_externalities = sp_io::TestExternalities::default();
-		test_externalities.register_extension(OffchainWorkerExt::new(offchain));
+		test_externalities.register_extension(OffchainWorkerExt::new(offchain.clone()));
 		test_externalities.register_extension(TransactionPoolExt::new(pool));
+		test_externalities.register_extension(OffchainDbExt::new(offchain.clone()));
 
 		test_externalities
 	}

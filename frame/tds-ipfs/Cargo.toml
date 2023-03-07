@@ -17,7 +17,6 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 	"derive",
 ] }
 
-serde = { version = "1.0.136" }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
 frame-support = { default-features = false, version = "4.0.0-dev", path = "../../frame/support" }
 frame-system = { default-features = false, version = "4.0.0-dev", path = "../../frame/system" }
@@ -29,6 +28,7 @@ sp-runtime = { default-features = false, version = "7.0.0", path = "../../primit
 log = { default-features = false, version = "0.4" }
 
 pallet-tds-ipfs-core = { default-features = false, version = "4.0.0-dev", path = "../../frame/tds-ipfs-core" }
+serde = { version = "1.0.136", default-features = false, features = ["derive"]}
 
 [dev-dependencies]
 pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, path = "../randomness-collective-flip" }
@@ -42,7 +42,6 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'frame-benchmarking/std',
-    'serde/std',
     'sp-io/std',
     'sp-std/std',
     'pallet-tds-ipfs-core/std',

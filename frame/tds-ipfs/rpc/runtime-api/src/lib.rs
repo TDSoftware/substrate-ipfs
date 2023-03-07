@@ -3,7 +3,7 @@
 // Here we declare the runtime API. It is implemented it the `impl` block in
 // runtime file (the `runtime/src/lib.rs`)
 sp_api::decl_runtime_apis! {
-    pub trait TemplateApi {
+    pub trait TDSIpfsApi {
         fn get_value() -> u32;
     }
 }

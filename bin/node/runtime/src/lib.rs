@@ -1954,7 +1954,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_tds_ipfs_runtime_api::TemplateApi<Block> for Runtime {
+	impl pallet_tds_ipfs_runtime_api::TDSIpfsApi<Block> for Runtime {
 		fn get_value() -> u32 {
 			return 666
 		}

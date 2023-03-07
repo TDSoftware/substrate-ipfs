@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[rpc(client, server)]
 pub trait TDSIpfsApi<BlockHash> {
 	#[method(name = "ipfs_getFileURL")]
-	fn get_value(&self, at: Option<BlockHash>) -> RpcResult<u32>;
+	fn get_file_url(&self, at: Option<BlockHash>) -> RpcResult<u32>;
 }
 
 /// A struct that implements the `TemplateApi`.
@@ -37,7 +37,7 @@ impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Bl
 		C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 		C::Api: TDSIpfsRuntimeApi<Block>,
 {
-	fn get_value(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<u32> {
+	fn get_file_url(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<u32> {
 		// let api = self.client.runtime_api();
 		// let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
 		//

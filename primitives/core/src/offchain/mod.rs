@@ -307,6 +307,8 @@ pub enum IpfsRequest {
 	BitswapStats,
 	/// Get bytes with the given Cid from the IPFS repo and display them.
 	CatBytes(Vec<u8>),
+	/// Checks, if the file for is stored in the local IPFS repo.
+	FileExistsLocally(Vec<u8>),
 	/// Connect to an external IPFS node with the specified Multiaddr.
 	Connect(OpaqueMultiaddr),
 	/// Disconnect from an external IPFS node with the specified Multiaddr.
@@ -399,6 +401,8 @@ pub enum IpfsResponse {
 	},
 	/// The data received from IPFS.
 	CatBytes(Vec<u8>),
+	/// result which returns, if the given file with CID is stored locally,.
+	FileExistsLocally(Vec<u8>, bool),
 	/// A list of addresses known to be related to a PeerId.
 	FindPeer(Vec<OpaqueMultiaddr>),
 	/// The list of PeerIds closest to the given PeerId.

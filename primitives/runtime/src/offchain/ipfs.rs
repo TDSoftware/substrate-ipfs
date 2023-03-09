@@ -51,7 +51,7 @@ pub struct PendingRequest {
 }
 
 impl PendingRequest {
-	/// Creates amd starts a specified request for the IPFS node.
+	/// Creates and starts a specified request for the IPFS node.
 	pub fn new(request: IpfsRequest) -> Result<Self, IpfsError> {
 		let id =
 			sp_io::offchain::ipfs_request_start(request.clone()).map_err(|_| IpfsError::IoError)?;

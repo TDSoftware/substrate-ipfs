@@ -19,6 +19,62 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod file {
+	use pallet_tds_ipfs_core::Error;
+	use sp_std::vec::Vec;
+
+	pub enum FindFileResult {
+		URL(Vec<u8>),
+		NotFound,
+	}
+
+	/** Returns the url for the file.
+	    The url is either coming from the public gateway if found or from the local node.
+	 */
+	pub fn get_file_url(cid: Vec<u8>) -> Result<FindFileResult, Error<()>> {
+		let result = if is_file_stored(&cid) {
+			// TODO: is that correct? should we create a local id?
+			let url = create_gateway_url(cid);
+			FindFileResult::URL(url)
+		}
+		else { // TODO:
+			FindFileResult::NotFound
+		};
+
+		let ret_val = Ok(result);
+		ret_val
+	}
+
+	/** Checks, if a file with the given CID is stored.
+		otherwise
+	*/
+	pub fn is_file_stored(cid: &Vec<u8>) -> bool {
+		let mut ret_val = is_file_stored_locally(cid);
+		if ret_val {
+			return ret_val
+		}
+
+		// TODO: check, if the file is stored on chain
+
+		return true
+	}
+
+	pub fn is_file_stored_locally(cid: &Vec<u8>) -> bool {
+		// TODO: implement
+		return true
+	}
+
+	/** Returns the url for the file from the local node.
+	 */
+	pub fn create_gateway_url(cid: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+		let gateway_url_pattern = b"https://ipfs.io/ipfs/".to_vec();
+		let mut ret_val = gateway_url_pattern.clone();
+
+		ret_val.append(&mut cid.clone());
+		return ret_val
+	}
+}
+
 pub mod crypto {
   use sp_core::sr25519::Signature as Sr25519Signature;
   use sp_runtime::{

@@ -28,7 +28,7 @@ use sp_runtime::{
 use frame_support::serde::{Deserialize, Serialize};
 
 use log::info;
-use sp_core::offchain::{Duration, IpfsRequest, IpfsResponse, OpaqueMultiaddr};
+use sp_core::offchain::{Duration, IpfsError, IpfsRequest, IpfsResponse, OpaqueMultiaddr};
 use sp_std::{str, vec::Vec};
 
 #[cfg(test)]
@@ -39,19 +39,6 @@ mod tests;
 
 pub mod storage;
 use frame_support::traits::Randomness;
-
-/** Returns the url for the file.
-The url is either coming from the public gateway if found or from the local node.
-*/
-pub fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8>{
-
-	// TODO: test code, will be removed with correct implementation in upcoming branches/tasks
-	let mut ret_val = b"/ipfs/".to_vec();
-	ret_val.append(&mut cid_bytes.clone());
-	// =========================================
-
-	return ret_val
-}
 
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.
@@ -109,6 +96,13 @@ pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u
           callback_response = bytes_received
         },
       IpfsResponse::AddBytes(cid) | IpfsResponse::RemoveBlock(cid) => callback_response = cid,
+	  IpfsResponse::FileExistsLocally(cid, exists) => {
+		  let byte: u8 = if exists {1 } else {0};
+		  let mut response = Vec::new();
+		  response.push(byte);
+
+		  callback_response = response
+	  },
 
       IpfsResponse::GetClosestPeers(peer_ids) | IpfsResponse::GetProviders(peer_ids) =>
         callback_response = multiple_bytes_to_utf8_safe_bytes(peer_ids),

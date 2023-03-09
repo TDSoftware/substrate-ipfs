@@ -975,7 +975,13 @@ impl<Types: IpfsTypes> Ipfs<Types> {
             .await
     }
 
-    /// Resolves a ipns path to an ipld path; currently only supports dnslink resolution.
+	/// Returns true, if the file exists in the repo of the current node
+	pub async fn exists_locally(&self, cid: Cid) -> Result<bool, Error> {
+		let ret_val = self.repo.get_block_now(&cid).await?.is_some();
+		Ok(ret_val)
+	}
+
+	/// Resolves a ipns path to an ipld path; currently only supports dnslink resolution.
     pub async fn resolve_ipns(&self, path: &IpfsPath, recursive: bool) -> Result<IpfsPath, Error> {
         async move {
             let ipns = self.ipns();
@@ -1463,7 +1469,7 @@ impl<Types: IpfsTypes> Ipfs<Types> {
         .await
     }
 
-    /// Establishes the node as a provider of a block with the given Cid: it publishes a provider
+	/// Establishes the node as a provider of a block with the given Cid: it publishes a provider
     /// record with the given key (Cid) and the node's PeerId to the peers closest to the key. The
     /// publication of provider records is periodically repeated as per the interval specified in
     /// `libp2p`'s  `KademliaConfig`.
@@ -1932,9 +1938,10 @@ mod tests {
         ipld,
         multihash::{Code, MultihashDigest},
         IpldCodec,
+		Cid
     };
 
-    #[tokio::test]
+	#[tokio::test]
     async fn test_put_and_get_block() {
         let ipfs = Node::new("test_node").await;
 
@@ -1969,4 +1976,19 @@ mod tests {
         ipfs.remove_pin(&cid, false).await.unwrap();
         assert!(!ipfs.is_pinned(&cid).await.unwrap());
     }
+
+	#[tokio::test]
+	async fn test_exists_locally() {
+		let ipfs = Node::new("test_node").await;
+
+		let data = ipld!([-1, -2, -3]);
+		let cid = ipfs.put_dag(data.clone()).await.unwrap();
+
+		assert_eq!(ipfs.exists_locally(cid).await.unwrap(), true);
+
+		let data = b"does not exists\n".to_vec();
+		let cid_non_exist = Cid::new_v1(IpldCodec::Raw.into(), Code::Sha2_256.digest(&data));
+
+		assert_eq!(ipfs.exists_locally(cid_non_exist).await.unwrap(), false);
+	}
 }

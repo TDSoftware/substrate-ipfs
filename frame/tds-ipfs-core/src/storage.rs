@@ -13,11 +13,12 @@ pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 #[derive(Debug, Encode, Decode, Default)]
 #[cfg_attr(feature = "std", derive(Deserialize))]
 
-/// Wrapper class containing the serialzed data
+/// Wrapper class containing the serialized data
 ///
 pub struct OffchainStorageData {
 	pub data: Vec<u8>,
 	pub meta_data: Vec<u8>
+
 	// can add further data such as enums here
 }
 
@@ -93,7 +94,7 @@ pub fn offchain_data<T: Config>(block_number: T::BlockNumber) -> Result<Offchain
 		}
 	}
 }
-
+/// Clears existing data for the given key
 pub fn clear_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, is_in_offchain_context: bool) {
 	if is_in_offchain_context {
 		let mut storage_ref = StorageValueRef::persistent(key);

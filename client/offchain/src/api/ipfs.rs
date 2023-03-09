@@ -29,12 +29,9 @@ use sp_core::offchain::{
 
 use std::fmt::Debug;
 use std::task::{Poll, Context};
-use std::{
-	convert::TryInto,
-	fmt, mem,
-	pin::Pin,
-	str,
-};
+use std::{convert::TryInto, fmt, mem, pin::Pin, str};
+use std::str::FromStr;
+use sp_runtime::traits::Clear;
 
 // wasm-friendly implementations of Ipfs::{add, get}
 async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> Result<Cid, rust_ipfs::Error> {
@@ -73,6 +70,27 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> R
 
 	tracing::info!("IPFS add file result: {:?}", result);
 	result
+}
+
+// TODO: TDS add tests
+async fn ipfs_file_exists_locally<T: IpfsTypes>(ipfs: &Ipfs<T>, cid_bytes: Vec<u8>) -> Result<bool, rust_ipfs::Error> {
+	let cid = str::from_utf8(cid_bytes.as_slice()).unwrap_or("");
+	let cid = Cid::from_str(cid).unwrap_or_default();
+
+	if cid.is_clear() {
+		let error_msg = format!("unable to create CID with{}", cid);
+		let error = rust_ipfs::Error::msg(error_msg);
+
+		return Result::Err(error)
+	}
+
+	let exists_result = ipfs.exists_locally(cid).await;
+	let ret_val = match exists_result {
+		Ok(exists) => Result::Ok(exists),
+		Err(error) => Result::Err(error)
+	};
+
+	ret_val
 }
 
 async fn ipfs_get<T: IpfsTypes>(ipfs: &Ipfs<T>, path: IpfsPath) -> Result<Vec<u8>, rust_ipfs::Error> {
@@ -341,6 +359,7 @@ pub enum IpfsNativeResponse {
 	AddListeningAddr(Multiaddr),
 	BitswapStats(BitswapStats),
 	CatBytes(Vec<u8>),
+	FileExistsLocally(bool),
 	Connect(()),
 	Disconnect(()),
 	FindPeer(Vec<Multiaddr>),
@@ -481,6 +500,11 @@ async fn ipfs_request<I: rust_ipfs::IpfsTypes>(
 			let data = ipfs_get(&ipfs, str::from_utf8(&cid)?.parse::<IpfsPath>()?).await?;
 			Ok(IpfsNativeResponse::CatBytes(data))
 		},
+		IpfsRequest::FileExistsLocally(cid) => {
+			let data = ipfs_file_exists_locally(&ipfs, cid).await.unwrap_or(false);
+			Ok(IpfsNativeResponse::FileExistsLocally(data))
+		},
+
 		IpfsRequest::Connect(addr) => {
 			let addr_str = str::from_utf8(&addr.0)?;
 			let addr = addr_str.parse::<MultiaddrWithPeerId>()?;
@@ -615,10 +639,23 @@ impl fmt::Debug for IpfsWorkerRequest {
 
 #[cfg(test)]
 mod tests {
+	use cid::Version;
 	use super::*;
 	use crate::api::timestamp;
 	use sp_core::offchain::{Duration, IpfsRequest, IpfsRequestStatus, IpfsResponse};
 	use rust_ipfs::{IpfsOptions, TestTypes, UninitializedIpfs};
+
+	#[test]
+	fn test_cid_version_from_raw() {
+		let mut cid = cid_version_from_raw(0);
+		assert_eq!(cid, Version::V0);
+
+		cid = cid_version_from_raw(1);
+		assert_eq!(cid, Version::V1);
+
+		cid = cid_version_from_raw(2);
+		assert_eq!(cid, Version::V1);
+	}
 
 	#[test]
 	fn metadata_calls() {

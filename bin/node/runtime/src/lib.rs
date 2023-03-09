@@ -1956,7 +1956,17 @@ impl_runtime_apis! {
 
 	impl pallet_tds_ipfs_runtime_api::TDSIpfsApi<Block> for Runtime {
 		fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
-			pallet_tds_ipfs_core::get_file_url(cid_bytes)
+			use pallet_tds_ipfs::file::{FindFileResult, get_file_url};
+
+			let ret_val: sp_std::vec::Vec<u8>;
+
+			if let Ok(FindFileResult::URL(cid)) = get_file_url(cid_bytes) {
+				ret_val = cid;
+			} else {
+				ret_val = Vec::<u8>::new();
+			};
+
+			return ret_val;
 		}
 	}
 

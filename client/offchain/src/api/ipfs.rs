@@ -72,7 +72,6 @@ async fn ipfs_add<T: IpfsTypes>(ipfs: &Ipfs<T>, data: Vec<u8>, version: u8) -> R
 	result
 }
 
-// TODO: TDS add tests
 async fn ipfs_file_exists_locally<T: IpfsTypes>(ipfs: &Ipfs<T>, cid_bytes: Vec<u8>) -> Result<bool, rust_ipfs::Error> {
 	let cid = str::from_utf8(cid_bytes.as_slice()).unwrap_or("");
 	let cid = Cid::from_str(cid).unwrap_or_default();
@@ -359,7 +358,7 @@ pub enum IpfsNativeResponse {
 	AddListeningAddr(Multiaddr),
 	BitswapStats(BitswapStats),
 	CatBytes(Vec<u8>),
-	FileExistsLocally(bool),
+	FileExistsLocally(Vec<u8>, bool),
 	Connect(()),
 	Disconnect(()),
 	FindPeer(Vec<Multiaddr>),
@@ -477,6 +476,9 @@ impl From<IpfsNativeResponse> for IpfsResponse {
 				let result = Vec::<u8>::new();
 				IpfsResponse::RemoveBlock(result)
 			},
+			IpfsNativeResponse::FileExistsLocally(cid, exists) => {
+				IpfsResponse::FileExistsLocally(cid, exists)
+			}
 			_ => IpfsResponse::Success,
 		}
 	}
@@ -501,8 +503,8 @@ async fn ipfs_request<I: rust_ipfs::IpfsTypes>(
 			Ok(IpfsNativeResponse::CatBytes(data))
 		},
 		IpfsRequest::FileExistsLocally(cid) => {
-			let data = ipfs_file_exists_locally(&ipfs, cid).await.unwrap_or(false);
-			Ok(IpfsNativeResponse::FileExistsLocally(data))
+			let exists = ipfs_file_exists_locally(&ipfs, cid.clone()).await.unwrap_or(false);
+			Ok(IpfsNativeResponse::FileExistsLocally(cid.clone(), exists))
 		},
 
 		IpfsRequest::Connect(addr) => {
@@ -644,6 +646,7 @@ mod tests {
 	use crate::api::timestamp;
 	use sp_core::offchain::{Duration, IpfsRequest, IpfsRequestStatus, IpfsResponse};
 	use rust_ipfs::{IpfsOptions, TestTypes, UninitializedIpfs};
+	use std::borrow::BorrowMut;
 
 	#[test]
 	fn test_cid_version_from_raw() {
@@ -659,6 +662,87 @@ mod tests {
 
 	#[test]
 	fn metadata_calls() {
+		let mut api = prepare_test_api().1;
+		let deadline = timestamp::now().add(Duration::from_millis(10_000));
+
+		let id1 = api.borrow_mut().request_start(IpfsRequest::Addrs).unwrap();
+		let id2 = api.borrow_mut().request_start(IpfsRequest::BitswapStats).unwrap();
+		let id3 = api.borrow_mut().request_start(IpfsRequest::Identity).unwrap();
+		let id4 = api.borrow_mut().request_start(IpfsRequest::LocalAddrs).unwrap();
+		let id5 = api.borrow_mut().request_start(IpfsRequest::Peers).unwrap();
+
+		match api.borrow_mut().response_wait(&[id1, id2, id3, id4, id5], Some(deadline)).as_slice() {
+			[IpfsRequestStatus::Finished(IpfsResponse::Addrs(..)), IpfsRequestStatus::Finished(IpfsResponse::BitswapStats { .. }), IpfsRequestStatus::Finished(IpfsResponse::Identity(..)), IpfsRequestStatus::Finished(IpfsResponse::LocalAddrs(..)), IpfsRequestStatus::Finished(IpfsResponse::Peers(..))] =>
+				{},
+			x => panic!("Connecting to the IPFS node failed: {:?}", x),
+		}
+	}
+
+	#[test]
+	 fn test_add_bytes() {
+		let (_, mut api) = prepare_test_api();
+		let bytes: Vec<u8> = vec![1,2,3,4,5];
+		let cid = test_add_bytes_with_api(&mut api, bytes);
+
+		assert_eq!(cid.is_empty(), false);
+	}
+
+	#[test]
+	fn test_file_exists() {
+		let (_, mut api) = prepare_test_api();
+		let deadline = timestamp::now().add(Duration::from_millis(10_000));
+
+		// non existing cid
+		let cid_non_existent_bytes = b"QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB".to_vec();
+		let id_exists_file_false = api.borrow_mut().request_start(IpfsRequest::FileExistsLocally(cid_non_existent_bytes.clone())).unwrap();
+
+		match api.borrow_mut().response_wait(&[id_exists_file_false], Some(deadline)).as_slice() {
+			[IpfsRequestStatus::Finished(IpfsResponse::FileExistsLocally(_cid, exists))] =>
+				{
+					assert_eq!(*exists, false);
+				},
+			x => panic!("Connecting to the IPFS node failed: {:?}", x),
+		}
+
+		// existing existing cid
+
+		// upload bytes first
+
+		let bytes: Vec<u8> = vec![1,2,3,4,5];
+		let cid_existent = test_add_bytes_with_api(&mut api, bytes);
+		let id_exists_file_true = api.borrow_mut().request_start(IpfsRequest::FileExistsLocally(cid_existent.clone())).unwrap();
+
+		match api.borrow_mut().response_wait(&[id_exists_file_true], Some(deadline)).as_slice() {
+			[IpfsRequestStatus::Finished(IpfsResponse::FileExistsLocally(cid, exists))] =>
+				{
+					let cid1_str = str::from_utf8(cid.as_slice()).unwrap_or("");
+					let cid1 = Cid::from_str(cid1_str).unwrap_or_default();
+
+					let cid2_str = str::from_utf8(cid_existent.as_slice()).unwrap_or("");
+					let cid2 = Cid::from_str(cid2_str).unwrap_or_default();
+
+					assert_eq!(cid1, cid2);
+					assert_eq!(*exists, true);
+				},
+			x => panic!("Connecting to the IPFS node failed: {:?}", x),
+		}
+	}
+
+	fn test_add_bytes_with_api(api: &mut IpfsApi, bytes: Vec<u8>) -> Vec<u8> {
+		let deadline = timestamp::now().add(Duration::from_millis(10_000));
+
+		let id1 = api.request_start(IpfsRequest::AddBytes(bytes, 1)).unwrap();
+
+		match api.borrow_mut().response_wait(&[id1], Some(deadline)).as_slice() {
+			[IpfsRequestStatus::Finished(IpfsResponse::AddBytes(cid_bytes))] =>
+				{
+					cid_bytes.clone()
+				},
+			x => panic!("Connecting to the IPFS node failed: {:?}", x),
+		}
+	}
+
+	fn prepare_test_api() -> (Ipfs<TestTypes>, IpfsApi) {
 		let options = IpfsOptions::inmemory_with_generated_keys();
 
 		let rt = tokio::runtime::Runtime::new().unwrap();
@@ -668,25 +752,13 @@ mod tests {
 			ipfs
 		});
 
-		let (mut api, worker) = ipfs(ipfs_node);
+		let (api, worker) = ipfs(ipfs_node.clone());
 
 		std::thread::spawn(move || {
 			let worker = rt.spawn(worker);
 			rt.block_on(worker).unwrap();
 		});
 
-		let deadline = timestamp::now().add(Duration::from_millis(10_000));
-
-		let id1 = api.request_start(IpfsRequest::Addrs).unwrap();
-		let id2 = api.request_start(IpfsRequest::BitswapStats).unwrap();
-		let id3 = api.request_start(IpfsRequest::Identity).unwrap();
-		let id4 = api.request_start(IpfsRequest::LocalAddrs).unwrap();
-		let id5 = api.request_start(IpfsRequest::Peers).unwrap();
-
-		match api.response_wait(&[id1, id2, id3, id4, id5], Some(deadline)).as_slice() {
-			[IpfsRequestStatus::Finished(IpfsResponse::Addrs(..)), IpfsRequestStatus::Finished(IpfsResponse::BitswapStats { .. }), IpfsRequestStatus::Finished(IpfsResponse::Identity(..)), IpfsRequestStatus::Finished(IpfsResponse::LocalAddrs(..)), IpfsRequestStatus::Finished(IpfsResponse::Peers(..))] =>
-				{},
-			x => panic!("Connecting to the IPFS node failed: {:?}", x),
-		}
+		return (ipfs_node, api)
 	}
 }

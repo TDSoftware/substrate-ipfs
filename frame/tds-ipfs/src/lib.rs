@@ -257,7 +257,33 @@ fn offchain_worker(block_number: T::BlockNumber) {
       Ok(Self::deposit_event(Event::QueuedDataToAdd(requester)))
     }
 
-	#[pallet::call_index(1)]
+	  /** Find IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
+	    Otherwise the decimal representation of the bytes is displayed instead.
+
+	  	Handle with care, could be expensive !
+	  **/
+
+	  // Commended out, since it should not be used. The file should be queried using the gateway
+	  // url. You can use it, but it works only with small file sizes and is expensive.
+
+	  // #[pallet::call_index(1)]
+	  // #[pallet::weight(100_000)]
+	  // pub fn cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+		//   let requester = ensure_signed(origin)?;
+		//   let mut commands = Vec::<IpfsCommand>::new();
+		//   commands.push(IpfsCommand::CatBytes(cid));
+	   //
+		//   let ipfs_command_request = CommandRequest::<T> {
+		// 	  identifier: generate_id::<T>(),
+		// 	  requester: requester.clone(),
+		// 	  ipfs_commands: commands,
+		//   };
+	  //
+		//   Commands::<T>::append(ipfs_command_request);
+		//   Ok(Self::deposit_event(Event::QueuedDataToCat(requester)))
+	  // }
+
+	  #[pallet::call_index(2)]
     #[pallet::weight(0)]
     pub fn ocw_callback(
       origin: OriginFor<T>,

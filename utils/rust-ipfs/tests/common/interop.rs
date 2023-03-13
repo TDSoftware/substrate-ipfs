@@ -33,8 +33,9 @@ pub mod common {
             use std::{io::Read, net::SocketAddr, str};
 
             // this environment variable should point to the location of the foreign ipfs binary
-            #[cfg(feature = "test_go_interop")]
-            const ENV_IPFS_PATH: &str = "GO_IPFS_PATH";
+            //#[cfg(feature = "test_go_interop")]
+            //const ENV_IPFS_PATH: &str = "GO_IPFS_PATH";
+
             #[cfg(feature = "test_js_interop")]
             const ENV_IPFS_PATH: &str = "JS_IPFS_PATH";
 
@@ -165,7 +166,7 @@ pub mod common {
     }
 
     #[derive(Deserialize, Debug)]
-    #[cfg_attr(feature = "test_go_interop", serde(rename_all = "PascalCase"))]
+    //#[cfg_attr(feature = "test_go_interop", serde(rename_all = "PascalCase"))]
     #[cfg_attr(feature = "test_js_interop", serde(rename_all = "camelCase"))]
     pub struct ForeignNodeId {
         #[cfg_attr(feature = "test_go_interop", serde(rename = "ID"))]

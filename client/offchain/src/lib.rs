@@ -425,8 +425,8 @@ mod tests {
 
 		// when
 
-		// let offchain = OffchainWorkers::new(client);
-		// futures::executor::block_on(offchain.on_block_imported(&header, network, false));
+		let offchain = OffchainWorkers::new(client, ipfs_rt);
+		futures::executor::block_on(offchain.on_block_imported(&header, network, false));
 
 		// then
 		assert_eq!(pool.0.status().ready, 1);

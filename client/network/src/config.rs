@@ -414,7 +414,9 @@ mod tests {
 	}
 
 	fn secret_bytes(kp: &Keypair) -> Vec<u8> {
-		let Keypair::Ed25519(p) = kp;
+		let Keypair::Ed25519(p) = kp else {
+			panic!("expecting Ed25519 Keypair")
+		};
 		p.secret().as_ref().iter().cloned().collect()
 	}
 

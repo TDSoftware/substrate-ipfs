@@ -92,7 +92,7 @@ async fn spawn_bootstrapped_nodes(n: usize) -> (Vec<Node>, Option<ForeignNode>) 
             (nodes[i - 1].id, nodes[i - 1].addrs[0].clone())
         };
 
-        nodes[i].add_peer(next_id, next_addr).await.unwrap();
+        nodes[i].add_peer(next_id, Some(next_addr)).await.unwrap();
         nodes[i].bootstrap().await.unwrap();
     }
 

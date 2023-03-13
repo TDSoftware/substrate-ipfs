@@ -16,6 +16,8 @@
 pub use pallet::*;
 use codec::{Decode, Encode};
 
+
+
 use sp_runtime::{
 	offchain::{
 		ipfs,
@@ -39,6 +41,9 @@ mod tests;
 
 pub mod storage;
 use frame_support::traits::Randomness;
+use frame_system::offchain::{SendSignedTransaction, Signer, SubmitTransaction};
+use sp_runtime::transaction_validity::InvalidTransaction::Call;
+use crate::storage::OffchainStorageData;
 
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.
@@ -175,18 +180,20 @@ fn process_ipfs_command<T: Config>(
 			let bytes_to_add: Vec<u8>;
 
 			if let Ok(data) = storage::offchain_data::<T> (block_number) {
-				log::info!("IPFS AddBytes with data");
+				info!("IPFS AddBytes with data");
 				bytes_to_add = data.data.clone();
 			} else {
-				log::info!("IPFS AddBytes no data :/");
+				info!("IPFS AddBytes no data :/");
 				return Err(Error::<T>::RequestFailed);
 			}
 
 			match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add, version.clone())) {
-              Ok(IpfsResponse::AddBytes(cid)) =>
-                Ok(result.push(IpfsResponse::AddBytes(cid))),
-              _ => Err(Error::<T>::RequestFailed),
-            }
+				Ok(IpfsResponse::AddBytes(cid)) => {
+					// submit_transaction(data);
+					Ok(result.push(IpfsResponse::AddBytes(cid)))
+				},
+				_ => Err(Error::<T>::RequestFailed),
+			}
           },
 
           IpfsCommand::CatBytes(ref cid) => {
@@ -253,6 +260,13 @@ fn process_ipfs_command<T: Config>(
     _ => Err(Error::<T>::FailedToAcquireLock),
   }
 }
+
+// fn submit_transaction(data: OffchainStorageData) {
+// 	store_data_value(data);
+//
+// 	// let call = Call::CustomModule(custom_module::Call::store_data(data));
+// 	// let _ = SubmitTransaction::<Runtime, Call>::submit_unsigned_transaction(call.into());
+// }
 
 /** Using the CommandRequest<T>.identifier we can attempt to create a lock via StorageValueRef,
 leaving behind a block number of when the lock was formed. */

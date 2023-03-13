@@ -260,6 +260,8 @@ members = [
 # If you see an error mentioning "profile package spec ... did not match any packages", it
 # probably concerns this list.
 #
+[profile.dev]
+debug = true
 # This list is ordered alphabetically.
 [profile.dev.package]
 blake2 = { opt-level = 3 }

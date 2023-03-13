@@ -8,7 +8,7 @@
 //!
 
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
-use frame_support::{ dispatch::DispatchResult};
+use frame_support::{decl_module, decl_storage, traits::Get,dispatch::DispatchResult, pallet_prelude::TypeInfo};
 
 use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
@@ -47,6 +47,7 @@ pub mod crypto {
 }
 
 pub use pallet::*;
+use pallet_tds_ipfs_core::storage::OffchainStorageData;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -63,10 +64,11 @@ pub mod pallet {
 	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
 	storage::set_offchain_data,
   };
+	use pallet_tds_ipfs_core::storage::OffchainStorageData;
 
-  use sp_core::crypto::KeyTypeId;
+	use sp_core::crypto::KeyTypeId;
 
-  pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
+	pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
   const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
 
   /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -97,13 +99,20 @@ pub mod pallet {
   pub struct Pallet<T>(_);
 
 
-  // The pallet's runtime storage items.
-  // https://docs.substrate.io/v3/runtime/storage
+	// The pallet's runtime storage items.
+	// https://docs.substrate.io/v3/runtime/storage
 
-  /** Store a list of Commands for the ocw to process */
-  #[pallet::storage]
-  #[pallet::getter(fn commands)]
-  pub type Commands<T: Config> = StorageValue<_, Vec<CommandRequest<T>>>;
+	/** Store a list of Commands for the ocw to process */
+	#[pallet::storage]
+	#[pallet::getter(fn commands)]
+	pub type Commands<T: Config> = StorageValue<_, Vec<CommandRequest<T>>>;
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn my_data_value)]
+	pub type MyDataValue<T: Config> =
+	StorageValue<_, Option<OffchainStorageData>, ValueQuery>;
+
 
   /** Pallets use events to inform users when important changes are made.
 
@@ -147,7 +156,7 @@ pub mod pallet {
   pub enum Event<T: Config> {
     ConnectionRequested(T::AccountId),
     DisconnectedRequested(T::AccountId),
-    QueuedDataToAdd(T::AccountId),
+    QueuedDataToAdd(T::AccountId, T::AccountId),
     QueuedDataToCat(T::AccountId),
     QueuedDataToPin(T::AccountId),
     QueuedDataToRemove(T::AccountId),
@@ -256,7 +265,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       };
 
       Commands::<T>::append(ipfs_command_request);
-      Ok(Self::deposit_event(Event::QueuedDataToAdd(requester)))
+      Ok(Self::deposit_event(Event::QueuedDataToAdd(requester.clone(), requester)))
     }
 
 	/** Find IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
@@ -445,9 +454,39 @@ fn offchain_worker(block_number: T::BlockNumber) {
 		Err(_) => Err(DispatchError::Corruption),
 	  }
     }
+
+	  #[pallet::weight(0)]
+	  pub fn save_data_value(
+		  origin: OriginFor<T>,
+		  data: OffchainStorageData,
+	  ) -> DispatchResultWithPostInfo {
+		  let who = ensure_signed(origin)?;
+		  MyDataValue::<T>::put(Some(data));
+		  Ok(().into())
+	  }
+
   }
 
+	// pub fn store_data_value<T:Config>(data: OffchainStorageData) {
+	// 	let signer = Signer::<T, T::AuthorityId>::any_account();
+	//
+	// 	let result = signer.send_signed_transaction(|_acct|
+	// 	// This is the on-chain function
+	// 		Self::Call::save_data_value {
+	// 	  data
+	// });
+}
+
   impl<T: Config> Pallet<T> {
+
+	  pub fn store_data_value<T:Config>(data: OffchainStorageData) {
+		  let signer = Signer::<T, T::AuthorityId>::any_account();
+
+		  let result = signer.send_signed_transaction(|_acct|
+			  // This is the on-chain function
+			  Self::Call::save_data_value {
+				  data
+			  });
 
     /**
        Iterate over all of the Active CommandRequests calling them.

@@ -7,10 +7,11 @@ use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
 use frame_support::serde::{Deserialize};
+use frame_support::pallet_prelude::TypeInfo;
 
 pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 
-#[derive(Debug, Encode, Decode, Default)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Deserialize))]
 
 /// Wrapper class containing the serialzed data

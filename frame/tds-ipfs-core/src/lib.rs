@@ -40,6 +40,19 @@ mod tests;
 pub mod storage;
 use frame_support::traits::Randomness;
 
+/** Returns the url for the file.
+The url is either coming from the public gateway if found or from the local node.
+*/
+pub fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8>{
+
+	// TODO: test code, will be removed with correct implementation in upcoming branches/tasks
+	let mut ret_val = b"/ipfs/".to_vec();
+	ret_val.append(&mut cid_bytes.clone());
+	// =========================================
+
+	return ret_val
+}
+
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.
 */

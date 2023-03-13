@@ -55,8 +55,91 @@ pub fn generate_id<T: Config>() -> [u8; 32] {
 1) lock the request for asynchronous processing
 2) Call each command in CommandRequest.ipfs_commands
   - Make sure each command is successfully before attempting the next
+
  */
 pub fn ocw_process_command<T: Config>(
+	block_number: T::BlockNumber,
+	command_request: CommandRequest<T>,
+	persistence_key: &[u8; 24],
+) -> Result<Vec<IpfsResponse>, Error<T>> {
+
+  /*  If you wanna add a add a different file system, that would be a correct entry point:
+    - Add a different process_YOUR-FILESYSTEM_command function herer
+    - In addition consider renaming the IpfsCommand to something more generic
+  */
+  process_ipfs_command(block_number, command_request, persistence_key)
+}
+
+/** Send a request to the local IPFS node; Can only be called in an offchain worker. * */
+pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Error<T>> {
+  let ipfs_request = ipfs::PendingRequest::new(request)
+                                        .map_err(|_| Error::CannotCreateRequest)?;
+
+  let duration = 1_200;
+  ipfs_request
+    .try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(duration))))
+    .map_err(|_| Error::<T>::RequestTimeout)?
+    .map(|req| req.response)
+    .map_err(|_error| Error::<T>::RequestFailed)
+}
+
+/** Parse Each ipfs response resulting in bytes to be used in callback
+  - If multiple responses are found the last response with bytes is returned.
+*/
+pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u8> {
+  let mut callback_response = Vec::<u8>::new();
+
+  for response in responses.clone() {
+    match response {
+      IpfsResponse::CatBytes(bytes_received) =>
+        if bytes_received.len() > 1 {
+          callback_response = bytes_received
+        },
+      IpfsResponse::AddBytes(cid) | IpfsResponse::RemoveBlock(cid) => callback_response = cid,
+
+      IpfsResponse::GetClosestPeers(peer_ids) | IpfsResponse::GetProviders(peer_ids) =>
+        callback_response = multiple_bytes_to_utf8_safe_bytes(peer_ids),
+
+      IpfsResponse::FindPeer(addresses) |
+      IpfsResponse::LocalAddrs(addresses) |
+      IpfsResponse::Peers(addresses) => callback_response = addresses_to_utf8_safe_bytes(addresses),
+
+      IpfsResponse::LocalRefs(refs) =>
+        callback_response = multiple_bytes_to_utf8_safe_bytes(refs),
+      IpfsResponse::Addrs(_) => {},
+      IpfsResponse::BitswapStats { .. } => {},
+      IpfsResponse::Identity(_, _) => {},
+      IpfsResponse::Success => {},
+    }
+  }
+  callback_response
+}
+
+/** Convert a vector of addresses into a comma separated utf8 safe vector of bytes */
+pub fn addresses_to_utf8_safe_bytes(addresses: Vec<OpaqueMultiaddr>) -> Vec<u8> {
+	multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
+}
+
+/** Flatten a Vector of bytes into a comma seperated utf8 safe vector of bytes */
+pub fn multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
+	let mut bytes = Vec::<u8>::new();
+
+	for res in response {
+		match str::from_utf8(&res) {
+			Ok(str) =>
+				if bytes.len() == 0 {
+					bytes = Vec::from(str.as_bytes());
+				} else {
+					bytes = [bytes, Vec::from(str.as_bytes())].join(", ".as_bytes());
+				},
+			_ => {},
+		}
+	}
+
+	bytes
+}
+
+fn process_ipfs_command<T: Config>(
 	block_number: T::BlockNumber,
 	command_request: CommandRequest<T>,
 	persistence_key: &[u8; 24],
@@ -169,75 +252,6 @@ pub fn ocw_process_command<T: Config>(
     },
     _ => Err(Error::<T>::FailedToAcquireLock),
   }
-}
-
-/** Send a request to the local IPFS node; Can only be called in an offchain worker. * */
-pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Error<T>> {
-  let ipfs_request = ipfs::PendingRequest::new(request)
-                                        .map_err(|_| Error::CannotCreateRequest)?;
-
-  let duration = 1_200;
-  ipfs_request
-    .try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(duration))))
-    .map_err(|_| Error::<T>::RequestTimeout)?
-    .map(|req| req.response)
-    .map_err(|_error| Error::<T>::RequestFailed)
-}
-
-/** Parse Each ipfs response resulting in bytes to be used in callback
-  - If multiple responses are found the last response with bytes is returned.
-*/
-pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u8> {
-  let mut callback_response = Vec::<u8>::new();
-
-  for response in responses.clone() {
-    match response {
-      IpfsResponse::CatBytes(bytes_received) =>
-        if bytes_received.len() > 1 {
-          callback_response = bytes_received
-        },
-      IpfsResponse::AddBytes(cid) | IpfsResponse::RemoveBlock(cid) => callback_response = cid,
-
-      IpfsResponse::GetClosestPeers(peer_ids) | IpfsResponse::GetProviders(peer_ids) =>
-        callback_response = multiple_bytes_to_utf8_safe_bytes(peer_ids),
-
-      IpfsResponse::FindPeer(addresses) |
-      IpfsResponse::LocalAddrs(addresses) |
-      IpfsResponse::Peers(addresses) => callback_response = addresses_to_utf8_safe_bytes(addresses),
-
-      IpfsResponse::LocalRefs(refs) =>
-        callback_response = multiple_bytes_to_utf8_safe_bytes(refs),
-      IpfsResponse::Addrs(_) => {},
-      IpfsResponse::BitswapStats { .. } => {},
-      IpfsResponse::Identity(_, _) => {},
-      IpfsResponse::Success => {},
-    }
-  }
-  callback_response
-}
-
-/** Convert a vector of addresses into a comma separated utf8 safe vector of bytes */
-pub fn addresses_to_utf8_safe_bytes(addresses: Vec<OpaqueMultiaddr>) -> Vec<u8> {
-	multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
-}
-
-/** Flatten a Vector of bytes into a comma seperated utf8 safe vector of bytes */
-pub fn multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
-	let mut bytes = Vec::<u8>::new();
-
-	for res in response {
-		match str::from_utf8(&res) {
-			Ok(str) =>
-				if bytes.len() == 0 {
-					bytes = Vec::from(str.as_bytes());
-				} else {
-					bytes = [bytes, Vec::from(str.as_bytes())].join(", ".as_bytes());
-				},
-			_ => {},
-		}
-	}
-
-	bytes
 }
 
 /** Using the CommandRequest<T>.identifier we can attempt to create a lock via StorageValueRef,

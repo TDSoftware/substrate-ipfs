@@ -55,7 +55,7 @@ use p2p::{
 use tokio::{sync::Notify, task::JoinHandle};
 use tracing::Span;
 use tracing_futures::Instrument;
-use unixfs::UnixfsStatus;
+use unixfs::{UnixfsStatus, AddOption};
 
 use std::{
     borrow::Borrow,
@@ -89,7 +89,7 @@ pub use self::{
 
 pub type Block = libipld::Block<libipld::DefaultParams>;
 
-use libipld::{Cid, Ipld, IpldCodec};
+use libipld::{Cid, Ipld, IpldCodec, cid};
 
 pub use libp2p::{
     self,
@@ -934,6 +934,7 @@ impl<Types: IpfsTypes> Ipfs<Types> {
             .await
     }
 
+// TODO: pass cid version
     /// Add a file from a path to the blockstore
     pub async fn add_file_unixfs<P: AsRef<std::path::Path>>(
         &self,
@@ -949,7 +950,16 @@ impl<Types: IpfsTypes> Ipfs<Types> {
         &self,
         stream: BoxStream<'static, Vec<u8>>,
     ) -> Result<BoxStream<'_, UnixfsStatus>, Error> {
-        unixfs::add(self, None, stream, None)
+		self.add_unixfs_with_cid_version(rust_unixfs::config::DEFAULT_CID_VERSION, stream).await
+    }
+
+	/// Add a file through a stream of data to the blockstore
+    pub async fn add_unixfs_with_cid_version(
+        &self,
+		cid_version: cid::Version,
+        stream: BoxStream<'static, Vec<u8>>,
+    ) -> Result<BoxStream<'_, UnixfsStatus>, Error> {
+        unixfs::add(self, None, stream, Some(AddOption::default_with_cid_version(cid_version)))
             .instrument(self.span.clone())
             .await
     }

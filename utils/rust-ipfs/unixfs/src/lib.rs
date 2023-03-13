@@ -26,6 +26,8 @@ pub use dir::{resolve, LookupError, MaybeResolved, ResolveError};
 mod pb;
 use pb::{UnixFs, UnixFsType};
 
+/// contains global configurations as well as default values and parameters
+pub mod config;
 /// Support operations for the dag-pb, the outer shell of UnixFS
 pub mod dagpb;
 

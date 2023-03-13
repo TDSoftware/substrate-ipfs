@@ -1,4 +1,6 @@
 use libipld::Cid;
+use libipld::cid::Version;
+use libipld::cid::Error;
 use libipld::multihash::{self, Multihash};
 
 use crate::pb::{FlatUnixFs, PBLink, UnixFs, UnixFsType};
@@ -7,6 +9,7 @@ use core::fmt;
 use quick_protobuf::{MessageWrite, Writer};
 
 use sha2::{Digest, Sha256};
+use crate::config;
 
 /// File tree builder. Implements [`core::default::Default`] which tracks the recent defaults.
 ///
@@ -16,7 +19,7 @@ use sha2::{Digest, Sha256};
 /// Current implementation maintains an internal buffer for the block creation and uses a
 /// non-customizable hash function to produce Cid version 0 links. Currently does not support
 /// inline links.
-#[derive(Default)]
+
 pub struct FileAdder {
     chunker: Chunker,
     collector: Collector,
@@ -27,17 +30,32 @@ pub struct FileAdder {
     // large file and using a minimal chunk size. Could be that this must be moved to Collector to
     // help collector (or layout) to decide how this should be persisted.
     unflushed_links: Vec<Link>,
+
+	/// the cid version to create the file with
+	pub cid_version: Version
+}
+
+impl Default for FileAdder {
+    fn default() -> Self {
+
+        Self { chunker: Default::default(),
+			collector: Default::default(),
+			block_buffer: Default::default(),
+			unflushed_links: Default::default(),
+			cid_version: config::DEFAULT_CID_VERSION}
+    }
 }
 
 impl fmt::Debug for FileAdder {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
-            "FileAdder {{ chunker: {:?}, block_buffer: {}/{}, unflushed_links: {} }}",
+            "FileAdder {{ chunker: {:?}, block_buffer: {}/{}, unflushed_links: {}, cid version {:?} }}",
             self.chunker,
             self.block_buffer.len(),
             self.block_buffer.capacity(),
             LinkFormatter(&self.unflushed_links),
+			self.cid_version
         )
     }
 }
@@ -172,7 +190,7 @@ impl FileAdder {
             // blocks and user takes care of chunking (and buffering)?
             //
             // cat file | my_awesome_chunker | my_brilliant_collector
-            let leaf = Self::flush_buffered_leaf(accepted, &mut self.unflushed_links, false);
+            let leaf = Self::flush_buffered_leaf(accepted, &mut self.unflushed_links, false, self.cid_version);
             assert!(leaf.is_some(), "chunk completed, must produce a new block");
             self.block_buffer.clear();
             let links = self.flush_buffered_links(false);
@@ -198,6 +216,7 @@ impl FileAdder {
                     self.block_buffer.as_slice(),
                     &mut self.unflushed_links,
                     false,
+					self.cid_version
                 );
                 assert!(leaf.is_some(), "chunk completed, must produce a new block");
                 self.block_buffer.clear();
@@ -217,7 +236,7 @@ impl FileAdder {
     /// every block in the near-ish future.
     pub fn finish(mut self) -> impl Iterator<Item = (Cid, Vec<u8>)> {
         let last_leaf =
-            Self::flush_buffered_leaf(&self.block_buffer, &mut self.unflushed_links, true);
+            Self::flush_buffered_leaf(&self.block_buffer, &mut self.unflushed_links, true, self.cid_version);
         let root_links = self.flush_buffered_links(true);
         // should probably error if there is neither?
         last_leaf.into_iter().chain(root_links.into_iter())
@@ -229,6 +248,7 @@ impl FileAdder {
         input: &[u8],
         unflushed_links: &mut Vec<Link>,
         finishing: bool,
+		cid_version: Version
     ) -> Option<(Cid, Vec<u8>)> {
         if input.is_empty() && (!finishing || !unflushed_links.is_empty()) {
             return None;
@@ -255,7 +275,7 @@ impl FileAdder {
             },
         };
 
-        let (cid, vec) = render_and_hash(&inner);
+        let (cid, vec) = render_and_hash(&inner, cid_version);
 
         let total_size = vec.len();
 
@@ -305,7 +325,7 @@ impl FileAdder {
     }
 }
 
-fn render_and_hash(flat: &FlatUnixFs<'_>) -> (Cid, Vec<u8>) {
+fn render_and_hash(flat: &FlatUnixFs<'_>, cid_version: Version) -> (Cid, Vec<u8>) {
     // TODO: as shown in later dagger we don't really need to render the FlatUnixFs fully; we could
     // either just render a fixed header and continue with the body OR links, though the links are
     // a bit more complicated.
@@ -314,8 +334,17 @@ fn render_and_hash(flat: &FlatUnixFs<'_>) -> (Cid, Vec<u8>) {
     flat.write_message(&mut writer)
         .expect("unsure how this could fail");
     let mh = Multihash::wrap(multihash::Code::Sha2_256.into(), &Sha256::digest(&out)).unwrap();
-    let cid = Cid::new_v0(mh).expect("sha2_256 is the correct multihash for cidv0");
-    (cid, out)
+    let cid = create_cid(&mh, cid_version).expect("expected cid");
+
+	(cid, out)
+}
+
+fn create_cid(multi_hash: &Multihash, version: Version) -> Result<Cid, Error> {
+	match version {
+    	Version::V0 => Cid::new_v0(*multi_hash),
+		// TODO: check if that code fits
+   	 	Version::V1 => Ok(Cid::new_v1(0x70, *multi_hash)),
+	}
 }
 
 /// Chunker strategy
@@ -390,6 +419,8 @@ pub struct BalancedCollector {
     reused_links: Vec<PBLink<'static>>,
     // reused between link block generation
     reused_blocksizes: Vec<u64>,
+	// the cid version to use for linking
+	cid_version: Version
 }
 
 impl fmt::Debug for BalancedCollector {
@@ -430,6 +461,7 @@ impl BalancedCollector {
             branching_factor,
             reused_links: Vec::new(),
             reused_blocksizes: Vec::new(),
+			cid_version: config::DEFAULT_CID_VERSION
         }
     }
 
@@ -576,7 +608,7 @@ impl BalancedCollector {
                     },
                 };
 
-                let (cid, vec) = render_and_hash(&inner);
+                let (cid, vec) = render_and_hash(&inner, self.cid_version);
 
                 // start overwriting at the first index of this level, then continue forward on
                 // next iterations.

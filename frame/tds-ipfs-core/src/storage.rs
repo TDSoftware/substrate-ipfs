@@ -17,14 +17,15 @@ pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 ///
 pub struct OffchainStorageData {
 	pub data: Vec<u8>,
+	pub meta_data: Vec<u8>
 	// can add further data such as enums here
 }
 
 impl OffchainStorageData {
 	/// creates a new instance with the given data
 	///
-	pub fn new(data: Vec<u8>) -> OffchainStorageData {
-		OffchainStorageData{data: data}
+	pub fn new(data: Vec<u8>, meta_data: Vec<u8>) -> OffchainStorageData {
+		OffchainStorageData{data, meta_data }
 	}
 }
 
@@ -37,10 +38,9 @@ impl OffchainStorageData {
 /// * `is_in_offchain_context` - Tells the storage, if the method coall is within onchain or offchain context.
 /// 							  That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>, is_in_offchain_context: bool) {
-	let storage_data = OffchainStorageData::new(data);
+pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>, meta_data: Vec<u8>, is_in_offchain_context: bool) {
+	let storage_data = OffchainStorageData::new(data, meta_data);
 	set_offchain_storage_data::<T>(block_number, &storage_data, is_in_offchain_context);
-
 }
 
 /// Writes data to the offchain storage.
@@ -82,15 +82,25 @@ pub fn set_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, offchain_stor
 
 /// Returns stored offchain data for the given block number
 ///
-pub fn offchain_data<T: Config>(block_number: T::BlockNumber) -> Result<Vec<u8>, StorageRetrievalError>  {
+pub fn offchain_data<T: Config>(block_number: T::BlockNumber) -> Result<OffchainStorageData, StorageRetrievalError>  {
 	match offchain_storage_data_for_block_number::<T>(block_number) {
 		Ok(data) => {
 			let offchain_storage_data = data.expect("expected offchain storage data");
-			Ok(offchain_storage_data.data)
+			Ok(offchain_storage_data)
 		},
 		Err(error) => {
 			Err(error)
 		}
+	}
+}
+
+pub fn clear_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, is_in_offchain_context: bool) {
+	if is_in_offchain_context {
+		let mut storage_ref = StorageValueRef::persistent(key);
+		storage_ref.clear();
+	}
+	else {
+		offchain_index::clear(key);
 	}
 }
 

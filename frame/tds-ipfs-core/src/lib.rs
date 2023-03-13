@@ -176,7 +176,7 @@ fn process_ipfs_command<T: Config>(
 
 			if let Ok(data) = storage::offchain_data::<T> (block_number) {
 				log::info!("IPFS AddBytes with data");
-				bytes_to_add = data.clone();
+				bytes_to_add = data.data.clone();
 			} else {
 				log::info!("IPFS AddBytes no data :/");
 				return Err(Error::<T>::RequestFailed);

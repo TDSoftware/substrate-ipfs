@@ -32,8 +32,8 @@ pub mod crypto {
 
   impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
     type RuntimeAppPublic = Public;
-    type GenericPublic = sp_core::sr25519::Public;
-    type GenericSignature = sp_core::sr25519::Signature;
+    type GenericPublic = sr25519::Public;
+    type GenericSignature = sr25519::Signature;
   }
 
   // Implemented for mock runtime in tests
@@ -47,7 +47,6 @@ pub mod crypto {
 }
 
 pub use pallet::*;
-use pallet_tds_ipfs_core::storage::OffchainStorageData;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,9 +61,8 @@ pub mod pallet {
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
     ocw_process_command,
 	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
-	storage::set_offchain_data,
+	storage::{set_offchain_data, OffchainStorageData}
   };
-	use pallet_tds_ipfs_core::storage::OffchainStorageData;
 
 	use sp_core::crypto::KeyTypeId;
 
@@ -456,6 +454,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
     }
 
 	  #[pallet::weight(0)]
+	  #[pallet::call_index(10)]
 	  pub fn save_data_value(
 		  origin: OriginFor<T>,
 		  data: OffchainStorageData,
@@ -467,26 +466,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
 
   }
 
-	// pub fn store_data_value<T:Config>(data: OffchainStorageData) {
-	// 	let signer = Signer::<T, T::AuthorityId>::any_account();
-	//
-	// 	let result = signer.send_signed_transaction(|_acct|
-	// 	// This is the on-chain function
-	// 		Self::Call::save_data_value {
-	// 	  data
-	// });
-}
-
   impl<T: Config> Pallet<T> {
-
-	  pub fn store_data_value<T:Config>(data: OffchainStorageData) {
-		  let signer = Signer::<T, T::AuthorityId>::any_account();
-
-		  let result = signer.send_signed_transaction(|_acct|
-			  // This is the on-chain function
-			  Self::Call::save_data_value {
-				  data
-			  });
 
     /**
        Iterate over all of the Active CommandRequests calling them.
@@ -538,6 +518,14 @@ fn offchain_worker(block_number: T::BlockNumber) {
       info!("IPFS: CommandRequest size: {}", Commands::<T>::decode_len().unwrap_or(0));
       Ok(())
     }
+
+	  pub fn store_data_value(data: OffchainStorageData) {
+		  let signer = Signer::<T, T::AuthorityId>::any_account();
+
+		  let result = signer.send_signed_transaction(|_acct| Call::save_data_value {
+			  data: data.clone()
+		  });
+	  }
 
     /** callback to the on-chain validators to continue processing the CID  * */
     fn signed_callback(

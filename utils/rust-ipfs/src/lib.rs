@@ -964,7 +964,7 @@ impl<Types: IpfsTypes> Ipfs<Types> {
             .await
     }
 
-    /// Retreive a file and saving it to a path.
+    /// Retrieve a file and saving it to a path.
     pub async fn get_unixfs<P: AsRef<Path>>(
         &self,
         path: IpfsPath,
@@ -1927,14 +1927,15 @@ mod node {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
     use libipld::{
         ipld,
         multihash::{Code, MultihashDigest},
         IpldCodec,
     };
+	use libipld::cid::Version;
 
-    #[tokio::test]
+	#[tokio::test]
     async fn test_put_and_get_block() {
         let ipfs = Node::new("test_node").await;
 
@@ -1969,4 +1970,41 @@ mod tests {
         ipfs.remove_pin(&cid, false).await.unwrap();
         assert!(!ipfs.is_pinned(&cid).await.unwrap());
     }
+
+	#[tokio::test]
+	async fn test_add_unixfs_with_cid_version_v0() {
+		test_add_unixfs_with_cid_version(Version::V0).await
+	}
+
+	#[tokio::test]
+	async fn test_add_unixfs_with_cid_version_v1() {
+		test_add_unixfs_with_cid_version(Version::V1).await
+	}
+
+	async fn test_add_unixfs_with_cid_version(cid_version: Version) {
+		let ipfs = Node::new("test_node").await;
+		let data: Vec<u8> = vec![1,2,3,4,5];
+
+		let data_packed = tokio_stream::once(data).boxed();
+		let mut data_stream = ipfs.add_unixfs_with_cid_version(cid_version, data_packed).await.unwrap();
+
+		while let Some(status) = data_stream.next().await {
+			match status {
+				UnixfsStatus::CompletedStatus { path, .. } => {
+					let cid_str = path.to_string().replace("/ipfs/", "");
+
+					match Cid::try_from(cid_str) {
+						Ok(cid) => {
+							assert_eq!(cid.version(), cid_version);
+						},
+						Err(_) => {
+							assert!(false, "Error uploading");
+						},
+					}
+				},
+
+				_ => {},
+			}
+		}
+	}
 }

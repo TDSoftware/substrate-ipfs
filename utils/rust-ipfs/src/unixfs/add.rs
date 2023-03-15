@@ -41,7 +41,6 @@ impl AddOption {
 	}
 }
 
-// TODO: pass cid version
 pub async fn add_file<'a, Types, MaybeOwned, P: AsRef<Path>>(
     ipfs: MaybeOwned,
     path: P,

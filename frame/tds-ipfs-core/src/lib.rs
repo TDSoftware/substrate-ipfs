@@ -41,9 +41,6 @@ pub mod storage;
 pub mod types;
 
 use frame_support::traits::Randomness;
-use frame_system::offchain::{SendSignedTransaction, Signer, SubmitTransaction};
-use sp_runtime::transaction_validity::InvalidTransaction::Call;
-
 
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.

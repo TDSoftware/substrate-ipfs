@@ -8,7 +8,7 @@
 //!
 
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
-use frame_support::{decl_module, decl_storage, traits::Get,dispatch::DispatchResult, pallet_prelude::TypeInfo};
+use frame_support::{dispatch::DispatchResult};
 
 use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
@@ -18,8 +18,6 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
-
-use pallet_tds_ipfs_core::types::CID_Data;
 
 pub mod crypto {
   use sp_core::sr25519::Signature as Sr25519Signature;
@@ -65,8 +63,8 @@ pub mod pallet {
 	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
 	storage::{store_cid_data_for_values}
   };
-	use pallet_tds_ipfs_core::storage::{read_cid_data_for_block_number, store_cid_data};
-	use pallet_tds_ipfs_core::types::CID_Data;
+	use pallet_tds_ipfs_core::storage::{read_cid_data_for_block_number};
+	use pallet_tds_ipfs_core::types::CIDData;
 
 	use sp_core::crypto::KeyTypeId;
 
@@ -111,9 +109,9 @@ pub mod pallet {
 
 
 	#[pallet::storage]
-	#[pallet::getter(fn my_data_value)]
-	pub type MyDataValue<T: Config> =
-	StorageValue<_, Option<CID_Data>, ValueQuery>;
+	#[pallet::getter(fn cid_onchain_data)]
+	pub type CIDOnchainData<T: Config> =
+	StorageValue<_, Option<CIDData>, ValueQuery>;
 
 
   /** Pallets use events to inform users when important changes are made.
@@ -434,7 +432,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       origin: OriginFor<T>,
       identifier: [u8; 32],
       data: Vec<u8>,
-	  additional_data: Option<CID_Data>
+	  additional_data: Option<CIDData>
     ) -> DispatchResult {
       let signer = ensure_signed(origin)?;
       let mut callback_command: Option<CommandRequest<T>> = None;
@@ -453,7 +451,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       Self::deposit_event(Event::OcwCallback(signer));
 
 	  if let Some(data) = additional_data {
-		  MyDataValue::<T>::put(Some(data));
+		  CIDOnchainData::<T>::put(Some(data));
 	  }
 
       match Self::command_callback(&callback_command.unwrap(), data) {
@@ -477,7 +475,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
 		}
 
-		  let offchain_data: Option<CID_Data> = match read_cid_data_for_block_number::<T>(block_number) {
+		  let offchain_data: Option<CIDData> = match read_cid_data_for_block_number::<T>(block_number) {
 			  Ok(data ) => data,
 			  Err( _ ) => None
 		  };
@@ -525,7 +523,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
     fn signed_callback(
       command_request: &CommandRequest<T>,
       data: Vec<u8>,
-	  additional_data: Option<CID_Data>
+	  additional_data: Option<CIDData>
     ) -> Result<(), IpfsError<T>> {
       let signer = Signer::<T, T::AuthorityId>::all_accounts();
 

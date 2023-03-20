@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use codec::{Decode, Encode};
 use frame_system::Config;
 use sp_io::{offchain_index};
@@ -7,9 +8,7 @@ use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
 use frame_support::serde::{Deserialize};
-use frame_support::pallet_prelude::TypeInfo;
-pub use crate::types::CID_Data;
-
+pub use crate::types::CIDData;
 
 pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 
@@ -25,7 +24,7 @@ pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 ///
 
 pub fn store_cid_data_for_values<T: Config>(block_number: T::BlockNumber, cid: Vec<u8>, meta_data: Vec<u8>, is_in_offchain_context: bool) {
-	let cid_data = CID_Data::new(cid, meta_data);
+	let cid_data = CIDData::new(cid, meta_data);
 	store_cid_data::<T>(block_number, &cid_data, is_in_offchain_context);
 }
 
@@ -38,7 +37,7 @@ pub fn store_cid_data_for_values<T: Config>(block_number: T::BlockNumber, cid: V
 /// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							  That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &CID_Data, is_in_offchain_context: bool) {
+pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &CIDData, is_in_offchain_context: bool) {
 	let key = offchain_data_key::<T>(block_number);
 	store_cid_data_for_key::<T>(&key, cid_data, is_in_offchain_context);
 }
@@ -53,10 +52,10 @@ pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &CID_Da
 /// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							 That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn store_cid_data_for_key<T: Config>(key: &Vec<u8>, cid_data: &CID_Data, is_in_offchain_context: bool) {
+pub fn store_cid_data_for_key<T: Config>(key: &Vec<u8>, cid_data: &CIDData, is_in_offchain_context: bool) {
 	store_offchain_data(key, cid_data, is_in_offchain_context)
 }
-// TODO: test
+
 
 /// Writes cdata to the offchain storage with the given key.
 ///
@@ -80,7 +79,7 @@ pub fn store_offchain_data(key: &Vec<u8>, data: &impl Encode, is_in_offchain_con
 
 /// Returns stored offchain data for the given block number
 ///
-pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<CID_Data, StorageRetrievalError>  {
+pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<CIDData, StorageRetrievalError>  {
 	match read_cid_data_for_block_number::<T>(block_number) {
 		Ok(data) => {
 			let cid_data = data.expect("expected cid data");
@@ -96,7 +95,7 @@ pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Res
 ///
 /// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
-pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<CID_Data>, StorageRetrievalError> {
+pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<CIDData>, StorageRetrievalError> {
 	let key = offchain_data_key::<T>(block_number);
 	let ret_val = offchain_storage_data_for_key(&key);
 
@@ -107,8 +106,8 @@ pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -
 ///
 /// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
-pub fn read_cid_data_for_key(key: &Vec<u8>) -> Result<Option<CID_Data>, StorageRetrievalError> {
-	let ret_val = offchain_storage_data_for_key::<CID_Data>(key);
+pub fn read_cid_data_for_key(key: &Vec<u8>) -> Result<Option<CIDData>, StorageRetrievalError> {
+	let ret_val = offchain_storage_data_for_key::<CIDData>(key);
 	ret_val
 }
 
@@ -138,9 +137,6 @@ pub fn offchain_data_key<T: Config>(block_number: T::BlockNumber) -> Vec<u8> {
 			.collect::<Vec<u8>>()
 	})
 }
-
-
-// TODO: test
 
 /// Returns the OffchainStorageData instance for the given key
 ///

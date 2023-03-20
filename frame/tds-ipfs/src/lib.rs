@@ -19,6 +19,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+use pallet_tds_ipfs_core::types::CID_Data;
+
 pub mod crypto {
   use sp_core::sr25519::Signature as Sr25519Signature;
   use sp_runtime::{
@@ -41,8 +43,8 @@ pub mod crypto {
     for TestAuthId
   {
     type RuntimeAppPublic = Public;
-    type GenericPublic = sp_core::sr25519::Public;
-    type GenericSignature = sp_core::sr25519::Signature;
+    type GenericPublic = sr25519::Public;
+    type GenericSignature = sr25519::Signature;
   }
 }
 
@@ -61,8 +63,10 @@ pub mod pallet {
     addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
     ocw_process_command,
 	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
-	storage::{set_offchain_data, OffchainStorageData}
+	storage::{store_cid_data_for_values}
   };
+	use pallet_tds_ipfs_core::storage::{read_cid_data_for_block_number, store_cid_data};
+	use pallet_tds_ipfs_core::types::CID_Data;
 
 	use sp_core::crypto::KeyTypeId;
 
@@ -88,7 +92,7 @@ pub mod pallet {
   }
 
   /// The current storage version.
-  const STORAGE_VERSION: frame_support::traits::StorageVersion = frame_support::traits::StorageVersion::new(1);
+  const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
   #[pallet::pallet]
   #[pallet::generate_store(pub(super) trait Store)]
@@ -109,7 +113,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn my_data_value)]
 	pub type MyDataValue<T: Config> =
-	StorageValue<_, Option<OffchainStorageData>, ValueQuery>;
+	StorageValue<_, Option<CID_Data>, ValueQuery>;
 
 
   /** Pallets use events to inform users when important changes are made.
@@ -249,7 +253,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
 	) -> DispatchResult {
       let requester = ensure_signed(origin)?;
 	  let block_number = frame_system::Pallet::<T>::block_number();
-	  set_offchain_data::<T>(block_number, received_bytes, meta_data, false);
+	  store_cid_data_for_values::<T>(block_number, received_bytes, meta_data, false);
 
 	  let mut commands = Vec::<IpfsCommand>::new();
       commands.push(IpfsCommand::AddBytes(version));
@@ -430,6 +434,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       origin: OriginFor<T>,
       identifier: [u8; 32],
       data: Vec<u8>,
+	  additional_data: Option<CID_Data>
     ) -> DispatchResult {
       let signer = ensure_signed(origin)?;
       let mut callback_command: Option<CommandRequest<T>> = None;
@@ -447,23 +452,15 @@ fn offchain_worker(block_number: T::BlockNumber) {
 
       Self::deposit_event(Event::OcwCallback(signer));
 
+	  if let Some(data) = additional_data {
+		  MyDataValue::<T>::put(Some(data));
+	  }
+
       match Self::command_callback(&callback_command.unwrap(), data) {
 		Ok(_) => Ok(()),
 		Err(_) => Err(DispatchError::Corruption),
 	  }
     }
-
-	  #[pallet::weight(0)]
-	  #[pallet::call_index(10)]
-	  pub fn save_data_value(
-		  origin: OriginFor<T>,
-		  data: OffchainStorageData,
-	  ) -> DispatchResultWithPostInfo {
-		  let who = ensure_signed(origin)?;
-		  MyDataValue::<T>::put(Some(data));
-		  Ok(().into())
-	  }
-
   }
 
   impl<T: Config> Pallet<T> {
@@ -480,6 +477,11 @@ fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
 		}
 
+		  let offchain_data: Option<CID_Data> = match read_cid_data_for_block_number::<T>(block_number) {
+			  Ok(data ) => data,
+			  Err( _ ) => None
+		  };
+
 		match ocw_process_command::<T>(
           block_number,
           command_request.clone(),
@@ -487,7 +489,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
         ) {
           Ok(responses) => {
             let callback_response = ocw_parse_ipfs_response::<T>(responses);
-            _ = Self::signed_callback(&command_request, callback_response);
+            _ = Self::signed_callback(&command_request, callback_response, offchain_data);
           },
           Err(e) => match e {
             IpfsError::<T>::RequestFailed => {
@@ -519,18 +521,11 @@ fn offchain_worker(block_number: T::BlockNumber) {
       Ok(())
     }
 
-	  pub fn store_data_value(data: OffchainStorageData) {
-		  let signer = Signer::<T, T::AuthorityId>::any_account();
-
-		  let result = signer.send_signed_transaction(|_acct| Call::save_data_value {
-			  data: data.clone()
-		  });
-	  }
-
     /** callback to the on-chain validators to continue processing the CID  * */
     fn signed_callback(
       command_request: &CommandRequest<T>,
       data: Vec<u8>,
+	  additional_data: Option<CID_Data>
     ) -> Result<(), IpfsError<T>> {
       let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
@@ -542,6 +537,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
       let results = signer.send_signed_transaction(|_account| Call::ocw_callback {
         identifier: command_request.identifier,
         data: data.clone(),
+	    additional_data: additional_data.clone()
       });
 
 	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
@@ -637,7 +633,7 @@ fn offchain_worker(block_number: T::BlockNumber) {
     }
   }
 
-  fn find_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> Option<T> {
+	fn find_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> Option<T> {
 	let found_value = vector.iter().find(|curr_value| {
 		value.eq_type(*curr_value)
   	});

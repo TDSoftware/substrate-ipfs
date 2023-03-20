@@ -16,8 +16,6 @@
 pub use pallet::*;
 use codec::{Decode, Encode};
 
-
-
 use sp_runtime::{
 	offchain::{
 		ipfs,
@@ -40,10 +38,12 @@ mod mock;
 mod tests;
 
 pub mod storage;
+pub mod types;
+
 use frame_support::traits::Randomness;
 use frame_system::offchain::{SendSignedTransaction, Signer, SubmitTransaction};
 use sp_runtime::transaction_validity::InvalidTransaction::Call;
-use crate::storage::OffchainStorageData;
+
 
 /** Create a "unique" id for each command
    Note: Nodes on the network will come to the same value for each id.
@@ -179,11 +179,9 @@ fn process_ipfs_command<T: Config>(
           IpfsCommand::AddBytes(ref version) => {
 			let bytes_to_add: Vec<u8>;
 
-			if let Ok(data) = storage::offchain_data::<T> (block_number) {
-				info!("IPFS AddBytes with data");
+			if let Ok(data) = storage::read_cid_for_block_number::<T> (block_number) {
 				bytes_to_add = data.data.clone();
 			} else {
-				info!("IPFS AddBytes no data :/");
 				return Err(Error::<T>::RequestFailed);
 			}
 

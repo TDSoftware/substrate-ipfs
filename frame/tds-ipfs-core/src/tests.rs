@@ -195,7 +195,7 @@ mod tests {
 	fn test_store_cid_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let data = vec![1, 2, 3, 4, 5];
-			let storage_data = storage::CIDData::new(data, vec![]);
+			let storage_data = CIDData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
 			storage::store_cid_data::<Test>(block_number, &storage_data, true);
@@ -207,7 +207,7 @@ mod tests {
 	fn test_offchain_storage_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let data = vec![1, 2, 3, 4, 5];
-			let storage_data = storage::CIDData::new(data, vec![]);
+			let storage_data = CIDData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
 			storage::store_cid_data::<Test>(block_number, &storage_data, true);
@@ -229,7 +229,7 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::CIDData::new(data, vec![]);
+			let storage_data = CIDData::new(data, vec![]);
 
 
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
@@ -243,7 +243,7 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::CIDData::new(data, vec![]);
+			let storage_data = CIDData::new(data, vec![]);
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
 			let result = storage::offchain_storage_data_for_key::<CIDData>(&key);
@@ -263,7 +263,7 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::CIDData::new(data, vec![]);
+			let storage_data = CIDData::new(data, vec![]);
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
 			// without clearing we get data back

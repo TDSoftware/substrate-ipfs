@@ -226,7 +226,7 @@ fn process_ipfs_command<T: Config>(
             }
           },
 
-          IpfsCommand::RemoveBlock(ref cid) => {
+          IpfsCommand::RemoveBlock(ref _cid) => {
 			// TODO: TDS add Cid again!
             // match ipfs_request::<T>(IpfsRequest::RemoveBlock(cid.clone())) {
 			match ipfs_request::<T>(IpfsRequest::RemoveBlock()) {

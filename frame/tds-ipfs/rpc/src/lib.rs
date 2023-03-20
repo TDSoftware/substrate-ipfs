@@ -9,8 +9,6 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, sp_std, traits::Block as BlockT};
 use std::sync::Arc;
-use sp_runtime::app_crypto::sp_core::hexdisplay::AsBytesRef;
-
 
 #[rpc(client, server)]
 pub trait TDSIpfsApi<BlockHash> {

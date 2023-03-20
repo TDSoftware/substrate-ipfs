@@ -107,6 +107,7 @@ use sp_runtime::generic::Era;
 // Import pallets
 pub use pallet_tds_ipfs_core;
 pub use pallet_tds_ipfs;
+pub use pallet_tds_ipfs_runtime_api;
 
 /// Generated voter bag information.
 mod voter_bags;
@@ -1898,6 +1899,7 @@ mod benches {
 }
 
 impl_runtime_apis! {
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
@@ -1949,6 +1951,12 @@ impl_runtime_apis! {
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
 			Executive::offchain_worker(header)
+		}
+	}
+
+	impl pallet_tds_ipfs_runtime_api::TDSIpfsApi<Block> for Runtime {
+		fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+			pallet_tds_ipfs_core::get_file_url(cid_bytes)
 		}
 	}
 

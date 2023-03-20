@@ -618,16 +618,16 @@ mod tests {
 	use super::*;
 	use crate::api::timestamp;
 	use sp_core::offchain::{Duration, IpfsRequest, IpfsRequestStatus, IpfsResponse};
+	use rust_ipfs::{IpfsOptions, TestTypes, UninitializedIpfs};
 
 	#[test]
 	fn metadata_calls() {
-		let options = ipfs::IpfsOptions::inmemory_with_generated_keys();
+		let options = IpfsOptions::inmemory_with_generated_keys();
 
 		let rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {
-			let (ipfs, fut): (Ipfs<ipfs::TestTypes>, _) =
-			ipfs::UninitializedIpfs::new(options).start().await.unwrap();
-			tokio::task::spawn(fut);
+			let ipfs: Ipfs<TestTypes> =
+				UninitializedIpfs::with_opt(options).start().await.expect("");
 			ipfs
 		});
 

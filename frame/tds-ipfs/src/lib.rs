@@ -8,7 +8,7 @@
 //!
 
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
-use frame_support::{dispatch::DispatchResult};
+use frame_support::{dispatch::DispatchResult, storage};
 
 use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
@@ -20,83 +20,83 @@ mod mock;
 mod tests;
 
 pub mod crypto {
-  use sp_core::sr25519::Signature as Sr25519Signature;
-  use sp_runtime::{
-    app_crypto::{app_crypto, sr25519},
-    traits::Verify,
-    MultiSignature, MultiSigner,
-  };
+	use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_runtime::{
+		app_crypto::{app_crypto, sr25519},
+		traits::Verify,
+		MultiSignature, MultiSigner,
+	};
 
-  app_crypto!(sr25519, sp_core::crypto::key_types::IPFS);
-  pub struct TestAuthId;
+	app_crypto!(sr25519, sp_core::crypto::key_types::IPFS);
+	pub struct TestAuthId;
 
-  impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
-    type RuntimeAppPublic = Public;
-    type GenericPublic = sr25519::Public;
-    type GenericSignature = sr25519::Signature;
-  }
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+		type RuntimeAppPublic = Public;
+		type GenericPublic = sr25519::Public;
+		type GenericSignature = sr25519::Signature;
+	}
 
-  // Implemented for mock runtime in tests
-  impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-    for TestAuthId
-  {
-    type RuntimeAppPublic = Public;
-    type GenericPublic = sr25519::Public;
-    type GenericSignature = sr25519::Signature;
-  }
+	// Implemented for mock runtime in tests
+	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+	for TestAuthId
+	{
+		type RuntimeAppPublic = Public;
+		type GenericPublic = sr25519::Public;
+		type GenericSignature = sr25519::Signature;
+	}
 }
 
 pub use pallet::*;
+use pallet_tds_ipfs_core::types::{Offchain_Data, IpfsFile};
 
 #[frame_support::pallet]
 pub mod pallet {
-  use super::*;
+	use super::*;
 
-  use frame_support::{pallet_prelude::*};
-  use frame_system::pallet_prelude::*;
-  use sp_std::vec::Vec;
-  use sp_std::{str};
+	use frame_support::{pallet_prelude::*};
+	use frame_system::pallet_prelude::*;
+	use sp_std::vec::Vec;
+	use sp_std::{str};
 
-  use pallet_tds_ipfs_core::{
-    addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
-    ocw_process_command,
-	CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
-	storage::{store_cid_data_for_values}
-  };
+	use pallet_tds_ipfs_core::{
+		addresses_to_utf8_safe_bytes, generate_id, ipfs_request, ocw_parse_ipfs_response,
+		ocw_process_command,
+		CommandRequest, Error as IpfsError, IpfsCommand, TypeEquality,
+		storage::{store_cid_data_for_values},
+	};
 	use pallet_tds_ipfs_core::storage::{read_cid_data_for_block_number};
-	use pallet_tds_ipfs_core::types::CIDData;
+	use pallet_tds_ipfs_core::types::{IpfsFile, Offchain_Data};
 
 	use sp_core::crypto::KeyTypeId;
 
 	pub const KEY_TYPE: KeyTypeId = sp_core::crypto::key_types::IPFS;
-  const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
+	const PROCESSED_COMMANDS: &[u8; 24] = b"ipfs::processed_commands";
 
-  /// Configure the pallet by specifying the parameters and types on which it depends.
+	/// Configure the pallet by specifying the parameters and types on which it depends.
+	#[pallet::config]
+	pub trait Config:
+	frame_system::Config + pallet_tds_ipfs_core::Config + CreateSignedTransaction<Call<Self>>
+	{
+		/// The identifier type for an offchain worker.
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 
-  #[pallet::config]
-  pub trait Config:
-    frame_system::Config + pallet_tds_ipfs_core::Config + CreateSignedTransaction<Call<Self>>
-  {
-    /// The identifier type for an offchain worker.
-    type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-    /// Because this pallet emits events, it depends on the runtime's definition of an event.
-    type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// overarching dispatch call type.
+		type RuntimeCall: From<Call<Self>>;
 
-    /// overarching dispatch call type.
-	type RuntimeCall: From<Call<Self>>;
+		type IpfsRandomness: frame_support::traits::Randomness<Self::Hash, Self::BlockNumber>;
+	}
 
-	type IpfsRandomness: frame_support::traits::Randomness<Self::Hash, Self::BlockNumber>;
-  }
+	/// The current storage version.
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
-  /// The current storage version.
-  const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
-
-  #[pallet::pallet]
-  #[pallet::generate_store(pub(super) trait Store)]
-  #[pallet::storage_version(STORAGE_VERSION)]
-  #[pallet::without_storage_info]
-  pub struct Pallet<T>(_);
+	#[pallet::pallet]
+	#[pallet::generate_store(pub (super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
+	#[pallet::without_storage_info]
+	pub struct Pallet<T>(_);
 
 
 	// The pallet's runtime storage items.
@@ -107,459 +107,494 @@ pub mod pallet {
 	#[pallet::getter(fn commands)]
 	pub type Commands<T: Config> = StorageValue<_, Vec<CommandRequest<T>>>;
 
-
 	#[pallet::storage]
-	#[pallet::getter(fn cid_onchain_data)]
-	pub type CIDOnchainData<T: Config> =
-	StorageValue<_, Option<CIDData>, ValueQuery>;
+	#[pallet::getter(fn ipfs_files)]
+	pub(super) type IpfsFileStorage<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat, Vec<u8>,
+		IpfsFile,
+		ValueQuery
+	>;
 
+	/** Pallets use events to inform users when important changes are made.
 
-  /** Pallets use events to inform users when important changes are made.
+	    Pre offchain worker
+	    - ConnectionRequested(T::AccountId)
+	    - DisconnectedRequested(T::AccountId)
+	    - QueuedDataToAdd(T::AccountId)
+	    - QueuedDataToCat(T::AccountId)
+	    - QueuedDataToPin(T::AccountId)
+	    - QueuedDataToRemove(T::AccountId)
+	    - QueuedDataToUnpin(T::AccountId)
+	    - FindPeerIssued(T::AccountId)
+	    - FindProvidersIssued(T::AccountId)
+	    - OcwCallback(T::AccountId)
 
-     Pre offchain worker
-     - ConnectionRequested(T::AccountId)
-     - DisconnectedRequested(T::AccountId)
-     - QueuedDataToAdd(T::AccountId)
-     - QueuedDataToCat(T::AccountId)
-     - QueuedDataToPin(T::AccountId)
-     - QueuedDataToRemove(T::AccountId)
-     - QueuedDataToUnpin(T::AccountId)
-     - FindPeerIssued(T::AccountId)
-     - FindProvidersIssued(T::AccountId)
-     - OcwCallback(T::AccountId)
+	    //Post offchain worker
+	    Requester, IpfsConnectionAddress
+	    - ConnectedTo(T::AccountId, Vec<u8>),
+	    Requester, IpfsDisconnectionAddress
+	    - DisconnectedFrom(T::AccountId, Vec<u8>),
 
-     //Post offchain worker
-     Requester, IpfsConnectionAddress
-     - ConnectedTo(T::AccountId, Vec<u8>),
-     Requester, IpfsDisconnectionAddress
-     - DisconnectedFrom(T::AccountId, Vec<u8>),
+	    Requester, Cid
+	    - AddedCid(T::AccountId, Vec<u8>),
+	    Requester, Cid, Bytes
+	    - CatBytes(T::AccountId, Vec<u8>, Vec<u8>),
 
-     Requester, Cid
-     - AddedCid(T::AccountId, Vec<u8>),
-     Requester, Cid, Bytes
-     - CatBytes(T::AccountId, Vec<u8>, Vec<u8>),
+	    Requester, Cid
+	    - InsertedPin(T::AccountId, Vec<u8>),
+	    Requester, Cid
+	    - RemovedPin(T::AccountId, Vec<u8>),
+	    Requester, Cid
+	    - RemovedBlock(T::AccountId, Vec<u8>),
 
-     Requester, Cid
-     - InsertedPin(T::AccountId, Vec<u8>),
-     Requester, Cid
-     - RemovedPin(T::AccountId, Vec<u8>),
-     Requester, Cid
-     - RemovedBlock(T::AccountId, Vec<u8>),
+	    Requester, ListOfPeers
+	    - FoundPeers(T::AccountId, Vec<u8>),
+	    Requester, Cid, Providers
+	    - CidProviders(T::AccountId, Vec<u8>, Vec<u8>),
+	 */
+	#[pallet::event]
+	#[pallet::generate_deposit(pub (super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		ConnectionRequested(T::AccountId),
+		DisconnectedRequested(T::AccountId),
+		QueuedDataToAdd(T::AccountId, T::AccountId),
+		QueuedDataToCat(T::AccountId),
+		QueuedDataToPin(T::AccountId),
+		QueuedDataToRemove(T::AccountId),
+		QueuedDataToUnpin(T::AccountId),
+		FindPeerIssued(T::AccountId),
+		FindProvidersIssued(T::AccountId),
+		OcwCallback(T::AccountId),
 
-     Requester, ListOfPeers
-     - FoundPeers(T::AccountId, Vec<u8>),
-     Requester, Cid, Providers
-     - CidProviders(T::AccountId, Vec<u8>, Vec<u8>),
-  */
-  #[pallet::event]
-  #[pallet::generate_deposit(pub(super) fn deposit_event)]
-  pub enum Event<T: Config> {
-    ConnectionRequested(T::AccountId),
-    DisconnectedRequested(T::AccountId),
-    QueuedDataToAdd(T::AccountId, T::AccountId),
-    QueuedDataToCat(T::AccountId),
-    QueuedDataToPin(T::AccountId),
-    QueuedDataToRemove(T::AccountId),
-    QueuedDataToUnpin(T::AccountId),
-    FindPeerIssued(T::AccountId),
-    FindProvidersIssued(T::AccountId),
-    OcwCallback(T::AccountId),
+		// Requester, IpfsConnectionAddress
+		ConnectedTo(T::AccountId, Vec<u8>),
+		// Requester, IpfsDisconnectionAddress
+		DisconnectedFrom(T::AccountId, Vec<u8>),
+		// Requester, Cid
+		AddedCid(T::AccountId, Vec<u8>),
+		// Requester, Cid, Bytes
+		CatBytes(T::AccountId, Vec<u8>, Vec<u8>),
+		// Requester, Cid
+		InsertedPin(T::AccountId, Vec<u8>),
+		// Requester, Cid
+		RemovedPin(T::AccountId, Vec<u8>),
+		// Requester, Cid
+		RemovedBlock(T::AccountId, Vec<u8>),
+		// Requester, ListOfPeers
+		FoundPeers(T::AccountId, Vec<u8>),
+		// Requester, Cid, Providers
+		CidProviders(T::AccountId, Vec<u8>, Vec<u8>),
+	}
 
-    // Requester, IpfsConnectionAddress
-    ConnectedTo(T::AccountId, Vec<u8>),
-    // Requester, IpfsDisconnectionAddress
-    DisconnectedFrom(T::AccountId, Vec<u8>),
-    // Requester, Cid
-    AddedCid(T::AccountId, Vec<u8>),
-    // Requester, Cid, Bytes
-    CatBytes(T::AccountId, Vec<u8>, Vec<u8>),
-    // Requester, Cid
-    InsertedPin(T::AccountId, Vec<u8>),
-    // Requester, Cid
-    RemovedPin(T::AccountId, Vec<u8>),
-    // Requester, Cid
-    RemovedBlock(T::AccountId, Vec<u8>),
-    // Requester, ListOfPeers
-    FoundPeers(T::AccountId, Vec<u8>),
-    // Requester, Cid, Providers
-    CidProviders(T::AccountId, Vec<u8>, Vec<u8>),
-  }
+	/** Errors inform users that something went wrong.
+	 - RequestFailed,
+	 */
+	#[pallet::error]
+	pub enum Error<T> {}
 
-  /** Errors inform users that something went wrong.
-  - RequestFailed,
-  */
-  #[pallet::error]
-  pub enum Error<T> {}
+	/** Modify the genesis state of the blockchain.
+	    This is pretty pointless atm since we overwrite the data each block.
 
-  /** Modify the genesis state of the blockchain.
-     This is pretty pointless atm since we overwrite the data each block.
+	    TODO: Until we have a working signed ocw callback is would mostly likely be used for configuring initial state in specs.
 
-     TODO: Until we have a working signed ocw callback is would mostly likely be used for configuring initial state in specs.
+	    Optional values are:
+	    -	commands: Vec<CommandRequest<T>>
+	 **/
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub commands: Vec<CommandRequest<T>>,
+	}
 
-     Optional values are:
-     -	commands: Vec<CommandRequest<T>>
-  **/
-  #[pallet::genesis_config]
-  pub struct GenesisConfig<T: Config> {
-    pub commands: Vec<CommandRequest<T>>,
-  }
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> GenesisConfig<T> {
+			GenesisConfig { commands: Vec::<CommandRequest<T>>::new() }
+		}
+	}
 
-  #[cfg(feature = "std")]
-  impl<T: Config> Default for GenesisConfig<T> {
-    fn default() -> GenesisConfig<T> {
-      GenesisConfig { commands: Vec::<CommandRequest<T>>::new() }
-    }
-  }
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			// TODO: Allow the configs to use strings, then convert them to the Vec<u8> collections.
+			Commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
+		}
+	}
 
-  #[pallet::genesis_build]
-  impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-    fn build(&self) {
-      // TODO: Allow the configs to use strings, then convert them to the Vec<u8> collections.
-      Commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
-    }
-  }
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			if let Err(_err) = Self::print_metadata(&"*** IPFS off-chain worker started with ***") {
+				log::error!("IPFS: Error occurred during `print_metadata`");
+			}
 
-  #[pallet::hooks]
-  impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-fn offchain_worker(block_number: T::BlockNumber) {
-      if let Err(_err) = Self::print_metadata(&"*** IPFS off-chain worker started with ***") {
-        log::error!("IPFS: Error occurred during `print_metadata`");
-      }
+			if let Err(_err) = Self::ocw_process_command_requests(block_number) {
+				log::error!("IPFS: command request");
+			}
+		}
+	}
 
-      if let Err(_err) = Self::ocw_process_command_requests(block_number) {
-        log::error!("IPFS: command request");
-      }
-    }
-  }
+	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
+	// These functions materialize as "extrinsics", which are often compared to transactions.
+	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 
-  // Dispatchable functions allows users to interact with the pallet and invoke state changes.
-  // These functions materialize as "extrinsics", which are often compared to transactions.
-  // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		/// Adds arbitrary bytes to the IPFS repository. The registered `Cid` is printed out in the
+		/// logs.
+		#[pallet::call_index(0)]
+		#[pallet::weight(100_000)]
+		pub fn add_bytes(origin: OriginFor<T>,
+						 received_bytes: Vec<u8>,
+						 version: u8,
+						 meta_data: Vec<u8>,
+		) -> DispatchResult {
+			let requester = ensure_signed(origin)?;
+			let block_number = frame_system::Pallet::<T>::block_number();
+			store_cid_data_for_values::<T>(block_number, received_bytes, meta_data, false);
 
-  #[pallet::call]
-  impl<T: Config> Pallet<T> {
+			let mut commands = Vec::<IpfsCommand>::new();
+			commands.push(IpfsCommand::AddBytes(version));
 
-	/// Adds arbitrary bytes to the IPFS repository. The registered `Cid` is printed out in the
-    /// logs.
+			let ipfs_command_request = CommandRequest::<T> {
+				identifier: generate_id::<T>(),
+				requester: requester.clone(),
+				ipfs_commands: commands,
+			};
 
-	#[pallet::call_index(0)]
-    #[pallet::weight(100_000)]
-    pub fn add_bytes(origin: OriginFor<T>,
-					 received_bytes: Vec<u8>,
-					 version: u8,
-		             meta_data: Vec<u8>
-	) -> DispatchResult {
-      let requester = ensure_signed(origin)?;
-	  let block_number = frame_system::Pallet::<T>::block_number();
-	  store_cid_data_for_values::<T>(block_number, received_bytes, meta_data, false);
+			Commands::<T>::append(ipfs_command_request);
+			Ok(Self::deposit_event(Event::QueuedDataToAdd(requester.clone(), requester)))
+		}
 
-	  let mut commands = Vec::<IpfsCommand>::new();
-      commands.push(IpfsCommand::AddBytes(version));
+		/** Find IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
+		    Otherwise the decimal representation of the bytes is displayed instead.
 
-      let ipfs_command_request = CommandRequest::<T> {
-        identifier: generate_id::<T>(),
-        requester: requester.clone(),
-        ipfs_commands: commands,
-      };
+		  	Handle with care, could be expensive !
+		  **/
 
-      Commands::<T>::append(ipfs_command_request);
-      Ok(Self::deposit_event(Event::QueuedDataToAdd(requester.clone(), requester)))
-    }
+		// Commended out, since it should not be used. The file should be queried using the gateway
+		// url. You can use it, but it works only with small file sizes and is expensive.
 
-	  /** Find IPFS data by the `Cid`; if it is valid UTF-8, it is printed in the logs.
-	    Otherwise the decimal representation of the bytes is displayed instead.
-
-	  	Handle with care, could be expensive !
-	  **/
-
-	  // Commended out, since it should not be used. The file should be queried using the gateway
-	  // url. You can use it, but it works only with small file sizes and is expensive.
-
-	  // #[pallet::call_index(1)]
-	  // #[pallet::weight(100_000)]
-	  // pub fn cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
+		// #[pallet::call_index(1)]
+		// #[pallet::weight(100_000)]
+		// pub fn cat_bytes(origin: OriginFor<T>, cid: Vec<u8>) -> DispatchResult {
 		//   let requester = ensure_signed(origin)?;
 		//   let mut commands = Vec::<IpfsCommand>::new();
 		//   commands.push(IpfsCommand::CatBytes(cid));
-	   //
+		//
 		//   let ipfs_command_request = CommandRequest::<T> {
 		// 	  identifier: generate_id::<T>(),
 		// 	  requester: requester.clone(),
 		// 	  ipfs_commands: commands,
 		//   };
-	  //
+		//
 		//   Commands::<T>::append(ipfs_command_request);
 		//   Ok(Self::deposit_event(Event::QueuedDataToCat(requester)))
-	  // }
+		// }
+		#[pallet::call_index(2)]
+		#[pallet::weight(0)]
+		pub fn ocw_callback(
+			origin: OriginFor<T>,
+			identifier: [u8; 32],
+			data: Vec<u8>,
+			offchain_data: Option<Offchain_Data>,
+		) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			let mut callback_command: Option<CommandRequest<T>> = None;
 
-	  #[pallet::call_index(2)]
-    #[pallet::weight(0)]
-    pub fn ocw_callback(
-      origin: OriginFor<T>,
-      identifier: [u8; 32],
-      data: Vec<u8>,
-	  additional_data: Option<CIDData>
-    ) -> DispatchResult {
-      let signer = ensure_signed(origin)?;
-      let mut callback_command: Option<CommandRequest<T>> = None;
+			Commands::<T>::mutate(|command_requests| {
+				let mut commands = command_requests.clone().unwrap();
 
-      Commands::<T>::mutate(|command_requests| {
-        let mut commands = command_requests.clone().unwrap();
+				if let Some(index) = commands.iter().position(|cmd| cmd.identifier == identifier) {
+					info!("Removing at index {}", index.clone());
+					callback_command = Some(commands.swap_remove(index).clone());
+				};
 
-        if let Some(index) = commands.iter().position(|cmd| cmd.identifier == identifier) {
-          info!("Removing at index {}", index.clone());
-          callback_command = Some(commands.swap_remove(index).clone());
-        };
+				*command_requests = Some(commands);
+			});
 
-        *command_requests = Some(commands);
-      });
+			Self::deposit_event(Event::OcwCallback(signer));
+			Self::handle_data_for_ocw_callback(data.clone(), offchain_data.clone(), callback_command.clone());
 
-      Self::deposit_event(Event::OcwCallback(signer));
+			match Self::command_callback(&callback_command.unwrap(), data.clone()) {
+				Ok(_) => Ok(()),
+				Err(_) => Err(DispatchError::Corruption),
+			}
+		}
+	}
 
-	  if let Some(data) = additional_data {
-		  CIDOnchainData::<T>::put(Some(data));
-	  }
+	impl<T: Config> Pallet<T> {
+		pub fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+			let entry = IpfsFileStorage::<T>::try_get(cid_bytes.clone());
 
-      match Self::command_callback(&callback_command.unwrap(), data) {
-		Ok(_) => Ok(()),
-		Err(_) => Err(DispatchError::Corruption),
-	  }
-    }
-  }
+			let ret_val = match entry {
+				Err( _ ) => Vec::<u8>::new(),
+				Ok( _ ) => Self::ipfs_gateway_url_for_cid(&cid_bytes)
+			};
 
-  impl<T: Config> Pallet<T> {
-
-    /**
-       Iterate over all of the Active CommandRequests calling them.
-    */
-    fn ocw_process_command_requests(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-      let commands: Vec<CommandRequest<T>> =
-        Commands::<T>::get().unwrap_or(Vec::<CommandRequest<T>>::new());
-
-      for command_request in commands {
-		if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
-			log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
+			return ret_val;
 		}
 
-		  let offchain_data: Option<CIDData> = match read_cid_data_for_block_number::<T>(block_number) {
-			  Ok(data ) => data,
-			  Err( _ ) => None
-		  };
+		fn ipfs_gateway_url_for_cid(cid: &Vec<u8>) -> Vec<u8> {
+			let mut ret_val = b"https://ipfs.io/ipfs/".to_vec();
+			ret_val.append(&mut cid.clone());
 
-		match ocw_process_command::<T>(
-          block_number,
-          command_request.clone(),
-          PROCESSED_COMMANDS,
-        ) {
-          Ok(responses) => {
-            let callback_response = ocw_parse_ipfs_response::<T>(responses);
-            _ = Self::signed_callback(&command_request, callback_response, offchain_data);
-          },
-          Err(e) => match e {
-            IpfsError::<T>::RequestFailed => {
-				log::error!("IPFS: failed to perform a request")
-            },
-            _ => {},
-          },
-        }
-      }
+			return ret_val
+		}
 
-      Ok(())
-    }
+		fn handle_data_for_ocw_callback(data: Vec<u8>,
+										offchain_data: Option<Offchain_Data>,
+										callback_command: Option<CommandRequest<T>>) {
+			if let Some(cmd_request) = callback_command.clone() {
+				if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &cmd_request.ipfs_commands) {
+					Self::handle_add_bytes_completed(data.clone(),offchain_data.clone() )
+				}
+			}
+			else {
+				return;
+			}
+		}
 
-    /** Output the current state of IPFS worker */
-    fn print_metadata(message: &str) -> Result<(), IpfsError<T>> {
-      let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
-        peers
-      } else {
-        Vec::new()
-      };
+		fn handle_add_bytes_completed(cid: Vec<u8>,
+									  offchain_data: Option<Offchain_Data>) {
+			if let Some(offchain_data_unwrap) = offchain_data {
+				let file = IpfsFile::new(cid, offchain_data_unwrap.meta_data);
+				Self::storeIpfsFileInfo(file)
+			}
+		}
 
-      info!("{}", message);
-      info!("IPFS: Is currently connected to {} peers", peers.len());
-      if !peers.is_empty() {
-        info!("IPFS: Peer Ids: {:?}", str::from_utf8(&addresses_to_utf8_safe_bytes(peers)))
-      }
+		fn storeIpfsFileInfo(ipfs_file: IpfsFile) {
+			IpfsFileStorage::<T>::insert(ipfs_file.cid.clone(), ipfs_file.clone())
+		}
 
-      info!("IPFS: CommandRequest size: {}", Commands::<T>::decode_len().unwrap_or(0));
-      Ok(())
-    }
+		/**
+		Iterate over all of the Active CommandRequests calling them.
+		 */
+		fn ocw_process_command_requests(block_number: T::BlockNumber) -> Result<(), Error<T>> {
+			let commands: Vec<CommandRequest<T>> =
+				Commands::<T>::get().unwrap_or(Vec::<CommandRequest<T>>::new());
 
-    /** callback to the on-chain validators to continue processing the CID  * */
-    fn signed_callback(
-      command_request: &CommandRequest<T>,
-      data: Vec<u8>,
-	  additional_data: Option<CIDData>
-    ) -> Result<(), IpfsError<T>> {
-      let signer = Signer::<T, T::AuthorityId>::all_accounts();
+			for command_request in commands {
+				if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
+					log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
+				}
 
-	  if !signer.can_sign() {
-        log::error!("*** IPFS *** ---- No local accounts available. Consider adding one via `author_insertKey` RPC.");
-        return Err(IpfsError::<T>::RequestFailed)?
-      }
+				let offchain_data: Option<Offchain_Data> = match read_cid_data_for_block_number::<T>(block_number) {
+					Ok(data) => data,
+					Err(_) => None
+				};
 
-      let results = signer.send_signed_transaction(|_account| Call::ocw_callback {
-        identifier: command_request.identifier,
-        data: data.clone(),
-	    additional_data: additional_data.clone()
-      });
+				match ocw_process_command::<T>(
+					block_number,
+					command_request.clone(),
+					PROCESSED_COMMANDS,
+				) {
+					Ok(responses) => {
+						let callback_response = ocw_parse_ipfs_response::<T>(responses);
+						_ = Self::signed_callback(&command_request, callback_response, offchain_data);
+					}
+					Err(e) => match e {
+						IpfsError::<T>::RequestFailed => {
+							log::error!("IPFS: failed to perform a request")
+						}
+						_ => {}
+					},
+				}
+			}
 
-	  if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
-		log::info!("IPFS CALL: signed_callback for Add Bytes");
-	  }
+			Ok(())
+		}
 
-      for (_account, result) in &results {
-        match result {
-          Ok(()) => {
-            info!("callback sent")
-          },
-          Err(e) => {
-            log::error!("Failed to submit transaction {:?}", e)
-          },
-        }
-      }
+		/** Output the current state of IPFS worker */
+		fn print_metadata(message: &str) -> Result<(), IpfsError<T>> {
+			let peers = if let IpfsResponse::Peers(peers) = ipfs_request::<T>(IpfsRequest::Peers)? {
+				peers
+			} else {
+				Vec::new()
+			};
 
-      Ok(())
-    }
+			info!("{}", message);
+			info!("IPFS: Is currently connected to {} peers", peers.len());
+			if !peers.is_empty() {
+				info!("IPFS: Peer Ids: {:?}", str::from_utf8(&addresses_to_utf8_safe_bytes(peers)))
+			}
 
-    //
-    // - Ideally the callback function can be override by another pallet that is coupled to this
-    //   one allowing for custom functionality.
-    // - data can be used for callbacks IE add a cid to the signer / uploader.
-    // - Validate a connected peer has the CID, and which peer has it etc.
+			info!("IPFS: CommandRequest size: {}", Commands::<T>::decode_len().unwrap_or(0));
+			Ok(())
+		}
 
-    fn command_callback(command_request: &CommandRequest<T>, data: Vec<u8>) -> Result<(), ()> {
-	  let contains_cat_bytes = contains_value_of_type_in_vector(&IpfsCommand::CatBytes(Vec::<u8>::new()), &command_request.ipfs_commands);
-	  let data_len_exceeded = data.len() > 20;
+		/** callback to the on-chain validators to continue processing the CID  * */
+		fn signed_callback(
+			command_request: &CommandRequest<T>,
+			data: Vec<u8>,
+			offchain_data: Option<Offchain_Data>,
+		) -> Result<(), IpfsError<T>> {
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
-	  if contains_cat_bytes && data_len_exceeded {  // Avoid excessive data logging
-		  info!("Received data for cat bytes with length: {:?}", &data.len());
-	  }
-	  else {
-		if let Ok(utf8_str) = str::from_utf8(&*data) {
-			info!("Received string: {:?}", utf8_str);
-		  } else {
-			info!("Received data: {:?}", data);
-		  }
-	  }
+			if !signer.can_sign() {
+				log::error!("*** IPFS *** ---- No local accounts available. Consider adding one via `author_insertKey` RPC.");
+				return Err(IpfsError::<T>::RequestFailed)?;
+			}
 
-      for command in command_request.clone().ipfs_commands {
-        match command {
-          IpfsCommand::ConnectTo(address) => Self::deposit_event(Event::ConnectedTo(
-            command_request.clone().requester,
-            address,
-          )),
+			let results = signer.send_signed_transaction(|_account| Call::ocw_callback {
+				identifier: command_request.identifier,
+				data: data.clone(),
+				offchain_data: offchain_data.clone(),
+			});
 
-          IpfsCommand::DisconnectFrom(address) => Self::deposit_event(
-            Event::DisconnectedFrom(command_request.clone().requester, address),
-          ),
-          IpfsCommand::AddBytes( _ ) => Self::deposit_event(Event::AddedCid(
-            command_request.clone().requester,
-            data.clone(),
-          )),
+			if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &command_request.ipfs_commands) {
+				log::info!("IPFS CALL: signed_callback for Add Bytes");
+			}
 
-          IpfsCommand::CatBytes(cid) => Self::deposit_event(Event::CatBytes(
-            command_request.clone().requester,
-            cid,
-            data.clone(),
-          )),
+			for (_account, result) in &results {
+				match result {
+					Ok(()) => {
+						info!("callback sent")
+					}
+					Err(e) => {
+						log::error!("Failed to submit transaction {:?}", e)
+					}
+				}
+			}
 
-          IpfsCommand::InsertPin(cid) => Self::deposit_event(Event::InsertedPin(
-            command_request.clone().requester,
-            cid,
-          )),
+			Ok(())
+		}
 
-          IpfsCommand::RemoveBlock(cid) => Self::deposit_event(Event::RemovedBlock(
-            command_request.clone().requester,
-            cid,
-          )),
+		//
+		// - Ideally the callback function can be override by another pallet that is coupled to this
+		//   one allowing for custom functionality.
+		// - data can be used for callbacks IE add a cid to the signer / uploader.
+		// - Validate a connected peer has the CID, and which peer has it etc.
 
-          IpfsCommand::RemovePin(cid) => Self::deposit_event(Event::RemovedPin(
-            command_request.clone().requester,
-            cid,
-          )),
+		fn command_callback(command_request: &CommandRequest<T>, data: Vec<u8>) -> Result<(), ()> {
+			let contains_cat_bytes = contains_value_of_type_in_vector(&IpfsCommand::CatBytes(Vec::<u8>::new()), &command_request.ipfs_commands);
+			let data_len_exceeded = data.len() > 20;
 
-          IpfsCommand::FindPeer(_) => Self::deposit_event(Event::FoundPeers(
-            command_request.clone().requester,
-            data.clone(),
-          )),
+			if contains_cat_bytes && data_len_exceeded {
+				// Avoid excessive data logging
+				info!("Received data for cat bytes with length: {:?}", &data.len());
+			} else {
+				if let Ok(utf8_str) = str::from_utf8(&*data) {
+					info!("Received string: {:?}", utf8_str);
+				} else {
+					info!("Received data: {:?}", data);
+				}
+			}
 
-          IpfsCommand::GetProviders(cid) => Self::deposit_event(Event::CidProviders(
-            command_request.clone().requester,
-            cid,
-            data.clone(),
-          )),
-        }
-      }
+			for command in command_request.clone().ipfs_commands {
+				match command {
+					IpfsCommand::ConnectTo(address) => Self::deposit_event(Event::ConnectedTo(
+						command_request.clone().requester,
+						address,
+					)),
 
-      Ok(())
+					IpfsCommand::DisconnectFrom(address) => Self::deposit_event(
+						Event::DisconnectedFrom(command_request.clone().requester, address),
+					),
+					IpfsCommand::AddBytes(_) => Self::deposit_event(Event::AddedCid(
+						command_request.clone().requester,
+						data.clone(),
+					)),
 
-    }
-  }
+					IpfsCommand::CatBytes(cid) => Self::deposit_event(Event::CatBytes(
+						command_request.clone().requester,
+						cid,
+						data.clone(),
+					)),
 
-	fn find_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> Option<T> {
-	let found_value = vector.iter().find(|curr_value| {
-		value.eq_type(*curr_value)
-  	});
+					IpfsCommand::InsertPin(cid) => Self::deposit_event(Event::InsertedPin(
+						command_request.clone().requester,
+						cid,
+					)),
 
-	let ret_val: Option<T> = match found_value {
-		Some(value) => Some(value.clone()),
-		None => None
-	};
+					IpfsCommand::RemoveBlock(cid) => Self::deposit_event(Event::RemovedBlock(
+						command_request.clone().requester,
+						cid,
+					)),
 
-	ret_val
-  }
+					IpfsCommand::RemovePin(cid) => Self::deposit_event(Event::RemovedPin(
+						command_request.clone().requester,
+						cid,
+					)),
 
-  fn contains_value_of_type_in_vector<T : TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> bool {
-	let ret_val = match find_value_of_type_in_vector(value, vector) {
-		Some(_) => true,
-		None => false,
-	};
+					IpfsCommand::FindPeer(_) => Self::deposit_event(Event::FoundPeers(
+						command_request.clone().requester,
+						data.clone(),
+					)),
 
-	ret_val
-  }
+					IpfsCommand::GetProviders(cid) => Self::deposit_event(Event::CidProviders(
+						command_request.clone().requester,
+						cid,
+						data.clone(),
+					)),
+				}
+			}
 
-#[test]
-fn test_type_equality() {
-	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
-	let cmd_cat_2 = IpfsCommand::CatBytes(vec![]);
-	let cmd_add = IpfsCommand::AddBytes(1);
+			Ok(())
+		}
+	}
 
-	assert!(cmd_cat.eq_type(&cmd_cat_2));
-	assert!(cmd_cat.eq_type(&cmd_cat));
-	assert!(cmd_cat.eq_type(&cmd_add) == false);
-}
+	fn find_value_of_type_in_vector<T: TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> Option<T> {
+		let found_value = vector.iter().find(|curr_value| {
+			value.eq_type(*curr_value)
+		});
 
+		let ret_val: Option<T> = match found_value {
+			Some(value) => Some(value.clone()),
+			None => None
+		};
 
-#[test]
-fn test_find_value_of_type_in_vector() {
-	let cmd_add = IpfsCommand::AddBytes(0);
-	let cmd_add_two = IpfsCommand::AddBytes(1);
-	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
-	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
-	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);
+		ret_val
+	}
 
-	let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
+	fn contains_value_of_type_in_vector<T: TypeEquality + Clone>(value: &T, vector: &Vec<T>) -> bool {
+		let ret_val = match find_value_of_type_in_vector(value, vector) {
+			Some(_) => true,
+			None => false,
+		};
 
-	assert!(find_value_of_type_in_vector(&cmd_add, &vec) != None);
-	assert!(find_value_of_type_in_vector(&cmd_add_two, &vec) != None);
-	assert!(find_value_of_type_in_vector(&cmd_disconnect, &vec) == None);
-}
+		ret_val
+	}
 
-#[test]
-fn test_contains_value_of_type_in_vector() {
-	let cmd_add = IpfsCommand::AddBytes(0);
-	let cmd_add_two = IpfsCommand::AddBytes(1);
-	let cmd_cat = IpfsCommand::CatBytes(vec![3,4,5,5,6]);
-	let cmd_connect = IpfsCommand::ConnectTo(vec![3,4,5,5,6]);
-	let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3,4,5,5,6]);
+	#[test]
+	fn test_type_equality() {
+		let cmd_cat = IpfsCommand::CatBytes(vec![3, 4, 5, 5, 6]);
+		let cmd_cat_2 = IpfsCommand::CatBytes(vec![]);
+		let cmd_add = IpfsCommand::AddBytes(1);
 
-	let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
-
-	assert!(contains_value_of_type_in_vector(&cmd_add, &vec));
-	assert!(contains_value_of_type_in_vector(&cmd_add_two, &vec));
-	assert!(contains_value_of_type_in_vector(&cmd_disconnect, &vec) == false);
-}
+		assert!(cmd_cat.eq_type(&cmd_cat_2));
+		assert!(cmd_cat.eq_type(&cmd_cat));
+		assert_eq!(cmd_cat.eq_type(&cmd_add), false);
+	}
 
 
+	#[test]
+	fn test_find_value_of_type_in_vector() {
+		let cmd_add = IpfsCommand::AddBytes(0);
+		let cmd_add_two = IpfsCommand::AddBytes(1);
+		let cmd_cat = IpfsCommand::CatBytes(vec![3, 4, 5, 5, 6]);
+		let cmd_connect = IpfsCommand::ConnectTo(vec![3, 4, 5, 5, 6]);
+		let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3, 4, 5, 5, 6]);
+
+		let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
+
+		assert_ne!(find_value_of_type_in_vector(&cmd_add, &vec), None);
+		assert_ne!(find_value_of_type_in_vector(&cmd_add_two, &vec), None);
+		assert_eq!(find_value_of_type_in_vector(&cmd_disconnect, &vec), None);
+	}
+
+	#[test]
+	fn test_contains_value_of_type_in_vector() {
+		let cmd_add = IpfsCommand::AddBytes(0);
+		let cmd_add_two = IpfsCommand::AddBytes(1);
+		let cmd_cat = IpfsCommand::CatBytes(vec![3, 4, 5, 5, 6]);
+		let cmd_connect = IpfsCommand::ConnectTo(vec![3, 4, 5, 5, 6]);
+		let cmd_disconnect = IpfsCommand::DisconnectFrom(vec![3, 4, 5, 5, 6]);
+
+		let vec = vec![cmd_add.clone(), cmd_cat, cmd_connect];
+
+		assert!(contains_value_of_type_in_vector(&cmd_add, &vec));
+		assert!(contains_value_of_type_in_vector(&cmd_add_two, &vec));
+		assert_eq!(contains_value_of_type_in_vector(&cmd_disconnect, &vec), false);
+	}
 }

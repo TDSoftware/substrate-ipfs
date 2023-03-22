@@ -8,7 +8,7 @@ use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
 use frame_support::serde::{Deserialize};
-pub use crate::types::CIDData;
+pub use crate::types::Offchain_Data;
 
 pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 
@@ -24,7 +24,7 @@ pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 ///
 
 pub fn store_cid_data_for_values<T: Config>(block_number: T::BlockNumber, cid: Vec<u8>, meta_data: Vec<u8>, is_in_offchain_context: bool) {
-	let cid_data = CIDData::new(cid, meta_data);
+	let cid_data = Offchain_Data::new(cid, meta_data);
 	store_cid_data::<T>(block_number, &cid_data, is_in_offchain_context);
 }
 
@@ -37,7 +37,7 @@ pub fn store_cid_data_for_values<T: Config>(block_number: T::BlockNumber, cid: V
 /// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							  That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &CIDData, is_in_offchain_context: bool) {
+pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &Offchain_Data, is_in_offchain_context: bool) {
 	let key = offchain_data_key::<T>(block_number);
 	store_cid_data_for_key::<T>(&key, cid_data, is_in_offchain_context);
 }
@@ -52,7 +52,7 @@ pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &CIDDat
 /// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							 That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn store_cid_data_for_key<T: Config>(key: &Vec<u8>, cid_data: &CIDData, is_in_offchain_context: bool) {
+pub fn store_cid_data_for_key<T: Config>(key: &Vec<u8>, cid_data: &Offchain_Data, is_in_offchain_context: bool) {
 	store_offchain_data(key, cid_data, is_in_offchain_context)
 }
 
@@ -79,7 +79,7 @@ pub fn store_offchain_data(key: &Vec<u8>, data: &impl Encode, is_in_offchain_con
 
 /// Returns stored offchain data for the given block number
 ///
-pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<CIDData, StorageRetrievalError>  {
+pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Offchain_Data, StorageRetrievalError>  {
 	match read_cid_data_for_block_number::<T>(block_number) {
 		Ok(data) => {
 			let cid_data = data.expect("expected cid data");
@@ -95,7 +95,7 @@ pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Res
 ///
 /// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
-pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<CIDData>, StorageRetrievalError> {
+pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<Offchain_Data>, StorageRetrievalError> {
 	let key = offchain_data_key::<T>(block_number);
 	let ret_val = offchain_storage_data_for_key(&key);
 
@@ -106,8 +106,8 @@ pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -
 ///
 /// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
-pub fn read_cid_data_for_key(key: &Vec<u8>) -> Result<Option<CIDData>, StorageRetrievalError> {
-	let ret_val = offchain_storage_data_for_key::<CIDData>(key);
+pub fn read_cid_data_for_key(key: &Vec<u8>) -> Result<Option<Offchain_Data>, StorageRetrievalError> {
+	let ret_val = offchain_storage_data_for_key::<Offchain_Data>(key);
 	ret_val
 }
 

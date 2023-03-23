@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 #[rpc(client, server)]
 pub trait TDSIpfsApi<BlockHash> {
-	#[method(name = "ipfs_getFileURL")]
+	#[method(name = "ipfs_getFileURLForCID")]
 	fn get_file_url_for_cid(&self, cid: &str, at: Option<BlockHash>) -> RpcResult<String>;
 
 	#[method(name = "ipfs_getFileURLForMetaData")]

@@ -1955,8 +1955,8 @@ impl_runtime_apis! {
 	}
 
 	impl pallet_tds_ipfs_runtime_api::TDSIpfsApi<Block> for Runtime {
-		fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
-			Ipfs::get_file_url(cid_bytes)
+		fn get_file_url_for_cid(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+			Ipfs::get_file_url_for_cid(cid_bytes)
 		}
 	}
 

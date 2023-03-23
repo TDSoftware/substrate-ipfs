@@ -8,17 +8,17 @@ use frame_support::pallet_prelude::TypeInfo;
 /// Wrapper class containing the file data to upload to ipfs and referring meta data
 #[derive(Debug, Clone, Encode, Decode, PartialEq, TypeInfo, Default)]
 #[cfg_attr(feature = "std", derive(Deserialize))]
-pub struct Offchain_Data {
+pub struct OffchainData {
 	pub data: Vec<u8>,
 	pub meta_data: Vec<u8>
 	// can add further data such as enums here
 }
 
-impl Offchain_Data {
+impl OffchainData {
 	/// creates a new instance with the given data
 	///
-	pub fn new(data: Vec<u8>, meta_data: Vec<u8>) -> Offchain_Data {
-		Offchain_Data { data: data, meta_data }
+	pub fn new(data: Vec<u8>, meta_data: Vec<u8>) -> OffchainData {
+		OffchainData { data: data, meta_data }
 	}
 }
 

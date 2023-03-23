@@ -3,7 +3,7 @@ mod tests {
 	use codec::{Encode, Decode};
 	use frame_support::{assert_ok};
 	use sp_runtime::traits::BlockNumberProvider;
-	use crate::{mock::*, storage::{self, Offchain_Data}, IpfsCommand, TypeEquality};
+	use crate::{mock::*, storage::{self, OffchainData}, IpfsCommand, TypeEquality};
 
 	use frame_support::serde::{Deserialize};
 
@@ -129,10 +129,10 @@ mod tests {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let data = vec![1, 2, 3];
 			let test_meta = vec![6, 1, 2, 3, 4];
-			let data_1 = Offchain_Data::new(data, test_meta);
+			let data_1 = OffchainData::new(data, test_meta);
 			let encode = data_1.encode();
 
-			let decode = Offchain_Data::decode(&mut &*encode);
+			let decode = OffchainData::decode(&mut &*encode);
 			assert_ok!(&decode);
 
 			let decoded_obj = decode.expect("expected OffchainStorageData");
@@ -195,7 +195,7 @@ mod tests {
 	fn test_store_cid_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let data = vec![1, 2, 3, 4, 5];
-			let storage_data = Offchain_Data::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
 			storage::store_cid_data::<Test>(block_number, &storage_data, true);
@@ -207,7 +207,7 @@ mod tests {
 	fn test_offchain_storage_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let data = vec![1, 2, 3, 4, 5];
-			let storage_data = Offchain_Data::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
 			storage::store_cid_data::<Test>(block_number, &storage_data, true);
@@ -229,7 +229,7 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = Offchain_Data::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 
 
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
@@ -243,10 +243,10 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = Offchain_Data::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
-			let result = storage::offchain_storage_data_for_key::<Offchain_Data>(&key);
+			let result = storage::offchain_storage_data_for_key::<OffchainData>(&key);
 			assert_ok!(&result);
 
 			if let Ok(Some(offchain_data_from_storage)) = result {
@@ -263,7 +263,7 @@ mod tests {
 			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = Offchain_Data::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
 			// without clearing we get data back

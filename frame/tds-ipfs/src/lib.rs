@@ -8,7 +8,7 @@
 //!
 
 use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
-use frame_support::{dispatch::DispatchResult, storage};
+use frame_support::{dispatch::DispatchResult};
 
 use log::{info};
 use sp_core::offchain::{IpfsRequest, IpfsResponse};
@@ -47,7 +47,6 @@ pub mod crypto {
 }
 
 pub use pallet::*;
-use pallet_tds_ipfs_core::types::{Offchain_Data, IpfsFile};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -65,7 +64,7 @@ pub mod pallet {
 		storage::{store_cid_data_for_values},
 	};
 	use pallet_tds_ipfs_core::storage::{read_cid_data_for_block_number};
-	use pallet_tds_ipfs_core::types::{IpfsFile, Offchain_Data};
+	use pallet_tds_ipfs_core::types::{IpfsFile, OffchainData};
 
 	use sp_core::crypto::KeyTypeId;
 
@@ -297,7 +296,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			identifier: [u8; 32],
 			data: Vec<u8>,
-			offchain_data: Option<Offchain_Data>,
+			offchain_data: Option<OffchainData>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 			let mut callback_command: Option<CommandRequest<T>> = None;
@@ -324,7 +323,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn get_file_url(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+		pub fn get_file_url_for_meta_data(meta_data: Vec<u8>) -> Vec<u8> {
+			let mut ret_val = Vec::<u8>::new();
+
+			if let Some(file) = IpfsFileStorage::<T>::iter_values().find(|curr_file| curr_file.meta_data == meta_data) {
+				ret_val = Self::ipfs_gateway_url_for_cid(&file.cid)
+			}
+
+			return ret_val;
+		}
+
+		pub fn get_file_url_for_cid(cid_bytes: Vec<u8>) -> Vec<u8> {
 			let entry = IpfsFileStorage::<T>::try_get(cid_bytes.clone());
 
 			let ret_val = match entry {
@@ -343,7 +352,7 @@ pub mod pallet {
 		}
 
 		fn handle_data_for_ocw_callback(data: Vec<u8>,
-										offchain_data: Option<Offchain_Data>,
+										offchain_data: Option<OffchainData>,
 										callback_command: Option<CommandRequest<T>>) {
 			if let Some(cmd_request) = callback_command.clone() {
 				if contains_value_of_type_in_vector(&IpfsCommand::AddBytes(0), &cmd_request.ipfs_commands) {
@@ -356,14 +365,14 @@ pub mod pallet {
 		}
 
 		fn handle_add_bytes_completed(cid: Vec<u8>,
-									  offchain_data: Option<Offchain_Data>) {
+									  offchain_data: Option<OffchainData>) {
 			if let Some(offchain_data_unwrap) = offchain_data {
 				let file = IpfsFile::new(cid, offchain_data_unwrap.meta_data);
-				Self::storeIpfsFileInfo(file)
+				Self::store_ipfs_file_info(file)
 			}
 		}
 
-		fn storeIpfsFileInfo(ipfs_file: IpfsFile) {
+		fn store_ipfs_file_info(ipfs_file: IpfsFile) {
 			IpfsFileStorage::<T>::insert(ipfs_file.cid.clone(), ipfs_file.clone())
 		}
 
@@ -379,7 +388,7 @@ pub mod pallet {
 					log::info!("IPFS CALL: ocw_process_command_requests for Add Bytes");
 				}
 
-				let offchain_data: Option<Offchain_Data> = match read_cid_data_for_block_number::<T>(block_number) {
+				let offchain_data: Option<OffchainData> = match read_cid_data_for_block_number::<T>(block_number) {
 					Ok(data) => data,
 					Err(_) => None
 				};
@@ -427,7 +436,7 @@ pub mod pallet {
 		fn signed_callback(
 			command_request: &CommandRequest<T>,
 			data: Vec<u8>,
-			offchain_data: Option<Offchain_Data>,
+			offchain_data: Option<OffchainData>,
 		) -> Result<(), IpfsError<T>> {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 

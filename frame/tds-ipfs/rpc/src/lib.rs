@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[rpc(client, server)]
 pub trait TDSIpfsApi<BlockHash> {
 	#[method(name = "ipfs_getFileURL")]
-	fn get_file_url(&self, cid: &str, at: Option<BlockHash>) -> RpcResult<String>;
+	fn get_file_url_for_cid(&self, cid: &str, at: Option<BlockHash>) -> RpcResult<String>;
 }
 
 impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Block>
@@ -22,14 +22,14 @@ impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Bl
 		C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 		C::Api: TDSIpfsRuntimeApi<Block>,
 {
-	fn get_file_url(&self, cid: &str, at: Option<<Block as BlockT>::Hash>) -> RpcResult<String> {
+	fn get_file_url_for_cid(&self, cid: &str, at: Option<<Block as BlockT>::Hash>) -> RpcResult<String> {
 		let api = self.client.runtime_api();
 		let cid_bytes = cid.as_bytes();
 		let cid_vec = sp_std::vec::Vec::from(cid_bytes);
 
 		let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
-		let result = api.get_file_url(&at,
-									  cid_vec);
+		let result = api.get_file_url_for_cid(&at,
+											  cid_vec);
 
 		match result {
 			Ok(cid_address_raw) => {

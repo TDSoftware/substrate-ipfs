@@ -1958,6 +1958,10 @@ impl_runtime_apis! {
 		fn get_file_url_for_cid(cid_bytes: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
 			Ipfs::get_file_url_for_cid(cid_bytes)
 		}
+
+		fn get_file_url_for_meta_data(meta_data: sp_std::vec::Vec<u8>) -> sp_std::vec::Vec<u8> {
+			Ipfs::get_file_url_for_meta_data(meta_data)
+		}
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {

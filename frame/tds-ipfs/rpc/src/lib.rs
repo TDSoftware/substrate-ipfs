@@ -14,6 +14,9 @@ use std::sync::Arc;
 pub trait TDSIpfsApi<BlockHash> {
 	#[method(name = "ipfs_getFileURL")]
 	fn get_file_url_for_cid(&self, cid: &str, at: Option<BlockHash>) -> RpcResult<String>;
+
+	#[method(name = "ipfs_getFileURLForMetaData")]
+	fn get_file_url_for_meta_data(&self, meta_data: &str, at: Option<BlockHash>) -> RpcResult<String>;
 }
 
 impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Block>
@@ -39,6 +42,27 @@ impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Bl
 			Err(api_error) => {
 				let error = runtime_error_into_rpc_err(api_error);
 				RpcResult::Err(error)
+			}
+		}
+	}
+
+	fn get_file_url_for_meta_data(&self, meta_data: &str, at: Option<<Block as BlockT>::Hash>) -> RpcResult<String> {
+		let api = self.client.runtime_api();
+		let meta_data_bytes = meta_data.as_bytes();
+		let meta_data_vec = sp_std::vec::Vec::from(meta_data_bytes);
+
+		let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
+		let result = api.get_file_url_for_meta_data(&at,
+													meta_data_vec);
+
+		match result {
+			Ok(cid_raw) => {
+				let cid_address = String::from_utf8(cid_raw).unwrap();
+				Ok(cid_address)
+			}
+			Err(api_error) => {
+				let error = runtime_error_into_rpc_err(api_error);
+				Err(error)
 			}
 		}
 	}

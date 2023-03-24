@@ -2,12 +2,12 @@
 name = 'pallet-tds-ipfs-core'
 version = "4.0.0-dev"
 description = "FRAME pallet provides scaffolding for interacting with an IPFS ocw"
-authors = ['Dan Henton <https://github.com/danhenton>']
-homepage = "https://substrate.io/"
+authors = ['Stefan Lang <https://github.com/langi667>', 'Sascha Dobschal <https://github.com/dobschal>', 'Markus Fritzner <https://github.com/markusdent>']
+homepage = "https://www.tdsoftware.de/"
 edition = '2021'
 license = "Apache-2.0"
 publish = false
-repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
+repository = "https://github.com/TDSoftware/substrate-ipfs"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -16,7 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
 	"derive",
 ] }
-#pallet-tds-ipfs = { default-features = false, version = "4.0.0-dev", path = "../../frame/tds-ipfs" }
+
 serde = { version = "1.0.136", default-features = false, features = ["derive"]}
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
 frame-support = { default-features = false, version = "4.0.0-dev", path = "../../frame/support" }

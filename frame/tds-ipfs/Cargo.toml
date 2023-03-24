@@ -1,9 +1,9 @@
 [package]
 name = 'pallet-tds-ipfs'
 version = "4.0.0-dev"
-description = "FRAME pallet that provides a almost complete set of extrinsics for interacting with an IPFS ocw"
-authors = ['Stefan Lang <https://github.com/langi667>']
-homepage = "https://substrate.io/"
+description = "FRAME pallet that provides an almost complete set of extrinsics for interacting with an IPFS node"
+authors = ['Stefan Lang <https://github.com/langi667>', 'Sascha Dobschal <https://github.com/dobschal>', 'Markus Fritzner <https://github.com/markusdent>']
+homepage = "https://www.tdsoftware.de/"
 edition = '2021'
 license = "Apache-2.0"
 publish = false

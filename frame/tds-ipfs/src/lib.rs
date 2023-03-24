@@ -105,11 +105,22 @@ pub mod pallet {
 	#[pallet::getter(fn commands)]
 	pub type Commands<T: Config> = StorageValue<_, Vec<CommandRequest<T>>>;
 
+
+	/**
+	 Stores the data of an uploaded IPFS file on chain. The key is the CID and the referring value is
+	 the IpfsFile.
+
+	 If you need to store the data in relationship to the account, change this data type to something like
+	 StorageDoubleMap and add the account id as second key. Afterwards adjust these two methods:
+	  - get_file_url_for_cid
+	  - get_file_url_for_meta_data
+	 */
+
 	#[pallet::storage]
 	#[pallet::getter(fn ipfs_files)]
 	pub(super) type IpfsFileStorage<T: Config> = StorageMap<
 		_,
-		Blake2_128Concat, Vec<u8>,
+		Blake2_128Concat, Vec<u8>, // key is cid
 		IpfsFile,
 		ValueQuery
 	>;

@@ -97,7 +97,6 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/v3/runtime/storage
 
@@ -215,7 +214,6 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			// TODO: Allow the configs to use strings, then convert them to the Vec<u8> collections.
 			Commands::<T>::set(Some(Vec::<CommandRequest<T>>::new()));
 		}
 	}

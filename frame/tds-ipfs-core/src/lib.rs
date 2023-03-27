@@ -74,7 +74,7 @@ pub fn ocw_process_command<T: Config>(
 /** Send a request to the local IPFS node; Can only be called in an offchain worker. * */
 pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Error<T>> {
 	let ipfs_request = ipfs::PendingRequest::new(request)
-										.map_err(|_| Error::CannotCreateRequest)?;
+		.map_err(|_| Error::CannotCreateRequest)?;
 	let duration = 1_200;
 	ipfs_request
 		.try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(duration))))

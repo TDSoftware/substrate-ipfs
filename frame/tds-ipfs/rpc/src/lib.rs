@@ -51,9 +51,8 @@ impl<C, Block> TDSIpfsApiServer<<Block as BlockT>::Hash> for TDSIpfsPallet<C, Bl
 		let meta_data_bytes = meta_data.as_bytes();
 		let meta_data_vec = sp_std::vec::Vec::from(meta_data_bytes);
 
-		let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
-		let result = api.get_file_url_for_meta_data(&at,
-													meta_data_vec);
+		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
+		let result = api.get_file_url_for_meta_data(&at, meta_data_vec);
 
 		match result {
 			Ok(cid_raw) => {

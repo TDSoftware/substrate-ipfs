@@ -373,8 +373,7 @@ pub mod pallet {
 			}
 		}
 
-		fn handle_add_bytes_completed(cid: Vec<u8>,
-									  offchain_data: Option<OffchainData>) {
+		fn handle_add_bytes_completed(cid: Vec<u8>, offchain_data: Option<OffchainData>) {
 			if let Some(offchain_data_unwrap) = offchain_data {
 				let file = IpfsFile::new(cid, offchain_data_unwrap.meta_data);
 				Self::store_ipfs_file_info(file)

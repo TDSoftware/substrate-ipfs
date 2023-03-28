@@ -1,10 +1,19 @@
-
 #[cfg(test)]
 mod tests {
 	use codec::{Encode, Decode};
 	use frame_support::{assert_ok};
 	use sp_runtime::traits::BlockNumberProvider;
-	use crate::{mock::*, storage::{self, OffchainStorageData}, IpfsCommand, TypeEquality};
+	use crate::{mock::*, storage::{self, OffchainData}, IpfsCommand, TypeEquality};
+
+	use frame_support::serde::{Deserialize};
+
+	#[derive(Debug, Clone, Encode, Decode, PartialEq)]
+	#[cfg_attr(feature = "std", derive(Deserialize))]
+	/// Wrapper class containing the serialised data
+	///
+	pub struct TestData {
+		pub data: Vec<u8>,
+	}
 
 	#[test]
 	fn test_generate_id() {
@@ -56,6 +65,7 @@ mod tests {
 			assert_ok!(result);
 
 			result = mock_disconnect_from_localhost();
+			println!("{:?}", result);
 			assert_ok!(result);
 		});
 	}
@@ -87,7 +97,7 @@ mod tests {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let cmd_add_bytes_one = IpfsCommand::AddBytes(1);
 			let cmd_add_bytes_two = IpfsCommand::AddBytes(0);
-			let cmd_cat_bytes = IpfsCommand::CatBytes(vec![3,4,6,8,9]);
+			let cmd_cat_bytes = IpfsCommand::CatBytes(vec![3, 4, 6, 8, 9]);
 
 			let cmp_add_bytes = cmd_add_bytes_one.eq_type(&cmd_add_bytes_two);
 			assert!(cmp_add_bytes);
@@ -98,15 +108,31 @@ mod tests {
 	}
 
 	#[test]
-	fn test_offchain_storage_data() {
-		ExtBuilder::default().build_and_execute_for_offchain(|| {
+	fn test_store_offchain_data_read_write() {
+		let data = vec![1, 2, 3, 4, 5];
+		let key = vec![6, 7, 8, 9];
 
-			let data = vec![1,2,3,];
+		let test_data = TestData { data };
+
+		ExtBuilder::default().build_and_execute_for_offchain(|| {
+			storage::store_offchain_data(&key, &test_data, true);
+			if let Ok(Some(stored_data)) = storage::offchain_storage_data_for_key::<TestData>(&key) {
+				assert_eq!(stored_data, test_data)
+			} else {
+				assert!(false)
+			}
+		});
+	}
+
+	#[test]
+	fn test_cid_data() {
+		ExtBuilder::default().build_and_execute_for_offchain(|| {
+			let data = vec![1, 2, 3];
 			let test_meta = vec![6, 1, 2, 3, 4];
-			let data_1 = OffchainStorageData::new(data, test_meta);
+			let data_1 = OffchainData::new(data, test_meta);
 			let encode = data_1.encode();
 
-			let decode = OffchainStorageData::decode(&mut &*encode);
+			let decode = OffchainData::decode(&mut &*encode);
 			assert_ok!(&decode);
 
 			let decoded_obj = decode.expect("expected OffchainStorageData");
@@ -116,13 +142,13 @@ mod tests {
 
 
 	#[test]
-	fn test_set_offchain_data() {
+	fn test_store_cid_data_for_values() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let block_number = System::current_block_number();
 			let test_data = vec![6, 1, 2, 3, 4];
 			let test_meta = vec![6, 1, 2, 3, 4];
 
-			storage::set_offchain_data::<Test>(block_number, test_data.clone(), test_meta.clone(), true);
+			storage::store_cid_data_for_values::<Test>(block_number, test_data.clone(), test_meta.clone(), true);
 			// no assertions here, but set_offchain_data would panic in case something went wrong
 		});
 	}
@@ -131,11 +157,11 @@ mod tests {
 	fn test_offchain_data() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
 			let block_number = System::current_block_number();
-			let test = vec![6,1,2,3,4];
+			let test = vec![6, 1, 2, 3, 4];
 			let test_meta = vec![6, 1, 2, 3, 4];
 
-			storage::set_offchain_data::<Test>(block_number, test.clone(), test_meta.clone(), true);
-			let offchain_data = storage::offchain_data::<Test>(block_number);
+			storage::store_cid_data_for_values::<Test>(block_number, test.clone(), test_meta.clone(), true);
+			let offchain_data = storage::read_cid_for_block_number::<Test>(block_number);
 
 			assert_ok!(&offchain_data);
 			let data = offchain_data.expect("expected bytes");
@@ -166,13 +192,13 @@ mod tests {
 	}
 
 	#[test]
-	fn test_set_offchain_storage_data_for_block_number() {
+	fn test_store_cid_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
-			let data = vec![1,2,3,4,5];
-			let storage_data = storage::OffchainStorageData::new(data, vec![]);
+			let data = vec![1, 2, 3, 4, 5];
+			let storage_data = OffchainData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
-			storage::set_offchain_storage_data::<Test>(block_number, &storage_data, true);
+			storage::store_cid_data::<Test>(block_number, &storage_data, true);
 			// no assertions here, but set_offchain_data would panic in case something went wrong
 		});
 	}
@@ -180,35 +206,33 @@ mod tests {
 	#[test]
 	fn test_offchain_storage_data_for_block_number() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
-
-			let data = vec![1,2,3,4,5];
-			let storage_data = storage::OffchainStorageData::new(data, vec![]);
+			let data = vec![1, 2, 3, 4, 5];
+			let storage_data = OffchainData::new(data, vec![]);
 
 			let block_number = System::current_block_number();
-			storage::set_offchain_storage_data::<Test>(block_number, &storage_data, true);
+			storage::store_cid_data::<Test>(block_number, &storage_data, true);
 
-			let result = storage::offchain_storage_data_for_block_number::<Test>(block_number);
+			let result = storage::read_cid_data_for_block_number::<Test>(block_number);
 			assert_ok!(&result);
 
 			if let Ok(Some(offchain_data_from_storage)) = result {
 				assert_eq!(offchain_data_from_storage.data, storage_data.data)
-			}
-			else {
+			} else {
 				assert!(false)
 			}
 		});
 	}
 
 	#[test]
-	fn test_set_offchain_storage_data_for_key() {
+	fn test_store_cid_data_for_key() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
-			let data = vec![1,2,3,4,5];
+			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::OffchainStorageData::new(data, vec![]);
+			let storage_data = OffchainData::new(data, vec![]);
 
 
-			storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
+			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 			// no assertions here, but set_offchain_data would panic in case something went wrong
 		});
 	}
@@ -216,46 +240,44 @@ mod tests {
 	#[test]
 	fn test_offchain_storage_data_for_key() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
-			let data = vec![1,2,3,4,5];
+			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::OffchainStorageData::new(data, vec![]);
-			storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
+			let storage_data = OffchainData::new(data, vec![]);
+			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
-			let result = storage::offchain_storage_data_for_key(&key);
+			let result = storage::offchain_storage_data_for_key::<OffchainData>(&key);
 			assert_ok!(&result);
 
 			if let Ok(Some(offchain_data_from_storage)) = result {
 				assert_eq!(offchain_data_from_storage.data, storage_data.data)
-			}
-			else {
+			} else {
 				assert!(false)
 			}
 		});
 	}
 
 	#[test]
-	fn test_offchain_storage_data_for_key_and_clear_afterwards() {
+	fn test_store_cid_data_for_key_and_clear_afterwards() {
 		ExtBuilder::default().build_and_execute_for_offchain(|| {
-			let data = vec![1,2,3,4,5];
+			let data = vec![1, 2, 3, 4, 5];
 			let key = b"test_key".to_vec();
 
-			let storage_data = storage::OffchainStorageData::new(data, vec![]);
-			storage::set_offchain_storage_data_for_key::<Test>(&key, &storage_data, true);
+			let storage_data = OffchainData::new(data, vec![]);
+			storage::store_cid_data_for_key::<Test>(&key, &storage_data, true);
 
 			// without clearing we get data back
-			let result = storage::offchain_storage_data_for_key(&key);
+			let result = storage::read_cid_data_for_key(&key);
 			assert_ok!(&result);
 
 			if let Ok(Some(offchain_data_from_storage)) = result {
 				assert_eq!(offchain_data_from_storage.data, storage_data.data)
-			}
-			else {
+			} else {
 				assert!(false)
 			}
 
 			storage::clear_offchain_storage_data_for_key::<Test>(&key, true);
-			let result_after_clear  = storage::offchain_storage_data_for_key(&key);
+			let result_after_clear = storage::read_cid_data_for_key(&key);
 
 			assert_ok!(&result_after_clear);
 
@@ -269,4 +291,3 @@ mod tests {
 		});
 	}
 }
-

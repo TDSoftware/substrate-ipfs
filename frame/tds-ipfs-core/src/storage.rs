@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use codec::{Decode, Encode};
 use frame_system::Config;
 use sp_io::{offchain_index};
@@ -7,92 +8,109 @@ use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
 use frame_support::serde::{Deserialize};
+pub use crate::types::OffchainData;
 
 pub const OFFCHAIN_KEY_PREFIX: &[u8] = b"ipfs_core::indexing1";
 
-#[derive(Debug, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Deserialize))]
-
-/// Wrapper class containing the serialzed data
-///
-pub struct OffchainStorageData {
-	pub data: Vec<u8>,
-	pub meta_data: Vec<u8>
-	// can add further data such as enums here
-}
-
-impl OffchainStorageData {
-	/// creates a new instance with the given data
-	///
-	pub fn new(data: Vec<u8>, meta_data: Vec<u8>) -> OffchainStorageData {
-		OffchainStorageData{data, meta_data }
-	}
-}
-
-/// Writes data to the offchain storage
+/// Writes cid and meta data to the offchain storage, uses block number to create the key
 ///
 /// # Arguments
 ///
-/// * `block_number` - Refering block number the data is for
-/// * `data` - Data to store
-/// * `is_in_offchain_context` - Tells the storage, if the method coall is within onchain or offchain context.
+/// * `block_number` - Referring block number the data is for
+/// * `cid` - the cid as byte vector
+/// * `meta_data` - referring meta data as byte vector
+/// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							  That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn set_offchain_data<T: Config>(block_number: T::BlockNumber, data: Vec<u8>, meta_data: Vec<u8>, is_in_offchain_context: bool) {
-	let storage_data = OffchainStorageData::new(data, meta_data);
-	set_offchain_storage_data::<T>(block_number, &storage_data, is_in_offchain_context);
+
+pub fn store_cid_data_for_values<T: Config>(block_number: T::BlockNumber, cid: Vec<u8>, meta_data: Vec<u8>, is_in_offchain_context: bool) {
+	let cid_data = OffchainData::new(cid, meta_data);
+	store_cid_data::<T>(block_number, &cid_data, is_in_offchain_context);
 }
 
-/// Writes data to the offchain storage.
-///
-/// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
+/// Writes cid data to the offchain storage with block number as key.
 ///
 /// # Arguments
 ///
-/// * `block_number` - Refering block number the data is for
-/// * `data` - Data to store
-/// * `is_in_offchain_context` - Tells the storage, if the method coall is within onchain or offchain context.
+/// * `block_number` - Referring block number the data is for
+/// * `cid_data` - cid_data to store
+/// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							  That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn set_offchain_storage_data<T: Config>(block_number: T::BlockNumber, offchain_storage_data: &OffchainStorageData, is_in_offchain_context: bool) {
+pub fn store_cid_data<T: Config>(block_number: T::BlockNumber, cid_data: &OffchainData, is_in_offchain_context: bool) {
 	let key = offchain_data_key::<T>(block_number);
-	set_offchain_storage_data_for_key::<T>(&key, offchain_storage_data, is_in_offchain_context);
+	store_cid_data_for_key::<T>(&key, cid_data, is_in_offchain_context);
 }
 
-/// Writes OffchainStorageData to the offchain storage
+/// Writes cid data to the offchain storage with the given key.
 ///
-/// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
 /// # Arguments
 ///
 /// * `key` - unique key to store the data
-/// * `offchain_storage_data` - OffchainStorageData instance to store
-/// * `is_in_offchain_context` - Tells the storage, if the method coall is within onchain or offchain context.
+/// * `cid_data` - CID_Data instance to store
+/// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
 /// 							 That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
 ///
-pub fn set_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, offchain_storage_data: &OffchainStorageData, is_in_offchain_context: bool) {
+pub fn store_cid_data_for_key<T: Config>(key: &Vec<u8>, cid_data: &OffchainData, is_in_offchain_context: bool) {
+	store_offchain_data(key, cid_data, is_in_offchain_context)
+}
+
+
+/// Writes cdata to the offchain storage with the given key.
+///
+///
+/// # Arguments
+///
+/// * `key` - unique key to store the data
+/// * `data` - data to store, must implement trait Encode
+/// * `is_in_offchain_context` - Tells the storage, if the method call is within onchain or offchain context.
+/// 							 That is important, since in both states use different storage APIs and storing fails, it the flag is wrong
+///
+pub fn store_offchain_data(key: &Vec<u8>, data: &impl Encode, is_in_offchain_context: bool) {
 	if is_in_offchain_context {
 		let storage_ref = StorageValueRef::persistent(key);
-		storage_ref.set(offchain_storage_data);
+		storage_ref.set(data);
 	}
 	else {
-		offchain_index::set(key, &offchain_storage_data.encode());
+		offchain_index::set(key, &data.encode());
 	}
 }
 
 /// Returns stored offchain data for the given block number
 ///
-pub fn offchain_data<T: Config>(block_number: T::BlockNumber) -> Result<OffchainStorageData, StorageRetrievalError>  {
-	match offchain_storage_data_for_block_number::<T>(block_number) {
+pub fn read_cid_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<OffchainData, StorageRetrievalError>  {
+	match read_cid_data_for_block_number::<T>(block_number) {
 		Ok(data) => {
-			let offchain_storage_data = data.expect("expected offchain storage data");
-			Ok(offchain_storage_data)
+			let cid_data = data.expect("expected cid data");
+			Ok(cid_data)
 		},
 		Err(error) => {
 			Err(error)
 		}
 	}
 }
+
+/// Returns cid data for the given block number
+///
+/// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
+///
+pub fn read_cid_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<OffchainData>, StorageRetrievalError> {
+	let key = offchain_data_key::<T>(block_number);
+	let ret_val = offchain_storage_data_for_key(&key);
+
+	ret_val
+}
+
+/// Returns cid data for the given key
+///
+/// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
+///
+pub fn read_cid_data_for_key(key: &Vec<u8>) -> Result<Option<OffchainData>, StorageRetrievalError> {
+	let ret_val = offchain_storage_data_for_key::<OffchainData>(key);
+	ret_val
+}
+
 
 pub fn clear_offchain_storage_data_for_key<T: Config>(key: &Vec<u8>, is_in_offchain_context: bool) {
 	if is_in_offchain_context {
@@ -120,24 +138,13 @@ pub fn offchain_data_key<T: Config>(block_number: T::BlockNumber) -> Vec<u8> {
 	})
 }
 
-/// Returns offchain data for the given block number
-///
-/// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
-///
-pub fn offchain_storage_data_for_block_number<T: Config>(block_number: T::BlockNumber) -> Result<Option<OffchainStorageData>, StorageRetrievalError> {
-	let key = offchain_data_key::<T>(block_number);
-	let ret_val = offchain_storage_data_for_key(&key);
-
-	ret_val
-}
-
 /// Returns the OffchainStorageData instance for the given key
 ///
 /// The OffchainStorageData is a wrapper class around the stored data. You can access the actual storage data through OffchainStorageData.data
 ///
-pub fn offchain_storage_data_for_key(key: &Vec<u8>) -> Result<Option<OffchainStorageData>, StorageRetrievalError> {
+pub fn offchain_storage_data_for_key<T: Decode>(key: &Vec<u8>) -> Result<Option<T>, StorageRetrievalError> {
 	let storage_ref = StorageValueRef::persistent(key);
-	let stored_data_result = storage_ref.get::<OffchainStorageData>();
+	let stored_data_result = storage_ref.get::<T>();
 
 	stored_data_result
 }

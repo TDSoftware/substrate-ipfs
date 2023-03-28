@@ -1,8 +1,10 @@
 [package]
 name = "pallet-tds-ipfs-runtime-api"
-authors = ["Stefan Lang <https://github.com/langi667>"]
+authors = ['Stefan Lang <https://github.com/langi667>']
+homepage = "https://www.tdsoftware.de/"
 version = "1.0.0"
 edition = "2021"
+repository = "https://github.com/TDSoftware/substrate-ipfs"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

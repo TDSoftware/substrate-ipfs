@@ -262,7 +262,12 @@ impl IpfsOptions {
     ///
     /// Also used from examples.
     pub fn inmemory_with_generated_keys() -> Self {
-        IpfsOptions {
+		let ipfs_path = match env::var("IPFS_PATH") {
+			Ok(val) => PathBuf::from(val),
+			Err(_) => env::current_dir().unwrap()
+		};
+		IpfsOptions {
+			ipfs_path,
             ..Default::default()
         }
     }

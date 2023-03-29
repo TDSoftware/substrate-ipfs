@@ -29,3 +29,5 @@ start-frontend.sh
 start-node.sh
 start-all.sh
 old-extrinsics.rs.backup
+# default storing folder for the IPFS node ###
+/blockstore

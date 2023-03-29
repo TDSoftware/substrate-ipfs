@@ -13,7 +13,7 @@ Then try out one of the [tutorials](https://docs.substrate.io/tutorials/).
 ## Community & Support
 
 Join the highly active and supportive community on the [Substrate Stack Exchange](https://substrate.stackexchange.com/) to ask questions about use and problems you run into using this software.
-Please do report bugs and [issues here](https://github.com/paritytech/substrate/issues) for anything you suspect requires action in the source. 
+Please do report bugs and [issues here](https://github.com/paritytech/substrate/issues) for anything you suspect requires action in the source.
 
 ## Contributions & Code of Conduct
 
@@ -27,21 +27,22 @@ The security policy and procedures can be found in [`docs/SECURITY.md`](docs/SEC
 ## IPFS
 
 This version of Substrate contains a working IPFS node and IPFS integration.
-Just install and start this implementation like any other substrate blockchain. 
+Just install and start this implementation like any other substrate blockchain.
 ```bash
 # E.g. run the blockchain in development mode
-cargo run -- --dev
+cargo run --bin substrate -- --dev --ws-external --rpc-cors all --enable-offchain-indexing=true
 ```
 
 Once started, you should see the connecting peer id in the console:
 ```bash
 net: starting with peer id 12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8
-IPFS: Node started with PeerId 12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8 and address ["/ip4/127.0.0.1/tcp/49595/p2p/12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8"]  
+IPFS: Node started with PeerId 12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8 and address ["/ip4/127.0.0.1/tcp/49595/p2p/12D3KooWRhtRwRq6Jo9cTTNjgC5MNRVyb33jXwkX8r3hpENqAmP8"]
 ```
 If you are interested, feel free to get in contact:
 [tdsoftware.de](https://tdsoftware.de)
 
-For details about the implementation, check the following project folders:
+For more details you should check out this [this documentation](docs/IPFS.md)
+or for implementation details, check the following project folders:
 ```
 /client/offchain
 /frame/tds-ipfs-core

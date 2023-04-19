@@ -3,7 +3,18 @@
 ## Prerequisite
 The IPFS functionality of the Substrate framework is encapsulated within the TDS-IPFS-Core as well as the TDS-IPFS pallets. Therefore, make sure, that you have a branch of the framework containing both pallets. They are located in the "frame" folder within the Substrate project structure. Furthermore, the IPFS implementation depends on offchain indexing. Consequently, make sure that the offchain storage is enabled when starting the substrate node. To do so, add "--enable-offchain-indexing=true" as run parameter, like:
 ```bash
-run --bin substrate -- --dev --ws-external --rpc-cors all --tmp --enable-offchain-indexing=true
+cargo run --bin substrate -- --dev --ws-external --rpc-cors all --tmp --enable-offchain-indexing=true
+```
+
+## Tests
+
+To run the in-build unit tests of the IPFS integration, just open a terminal and run:
+```bash
+cargo test --package pallet-tds-ipfs
+```
+and
+```bash
+cargo test --package pallet-tds-ipfs-core
 ```
 
 ## Documentation

@@ -12,8 +12,8 @@
 //! https://github.com/rs-ipfs/substrate/
 //!
 
-pub use pallet::*;
 use codec::{Decode, Encode};
+pub use pallet::*;
 
 use sp_runtime::{
 	offchain::{
@@ -41,9 +41,8 @@ pub mod types;
 
 use frame_support::traits::Randomness;
 
-/** Create a "unique" id for each command
-   Note: Nodes on the network will come to the same value for each id.
-*/
+// Create a "unique" id for each command
+//    Note: Nodes on the network will come to the same value for each id.
 pub fn generate_id<T: Config>() -> [u8; 32] {
 	let payload = (
 		T::IpfsRandomness::random(&b"ipfs-request-id"[..]).0,
@@ -52,29 +51,25 @@ pub fn generate_id<T: Config>() -> [u8; 32] {
 	payload.using_encoded(sp_io::hashing::blake2_256)
 }
 
-/** Process each IPFS `command_request` in the offchain worker
-1) lock the request for asynchronous processing
-2) Call each command in CommandRequest.ipfs_commands
-  - Make sure each command is successfully before attempting the next
-
- */
+// Process each IPFS `command_request` in the offchain worker
+// 1) lock the request for asynchronous processing
+// 2) Call each command in CommandRequest.ipfs_commands
+//   - Make sure each command is successfully before attempting the next
 pub fn ocw_process_command<T: Config>(
 	block_number: T::BlockNumber,
 	command_request: CommandRequest<T>,
 	persistence_key: &[u8; 24],
 ) -> Result<Vec<IpfsResponse>, Error<T>> {
-
-	/*  If you wanna add a add a different file system, that would be a correct entry point:
-	- Add a different process_YOUR-FILESYSTEM_command function herer
-	- In addition consider renaming the IpfsCommand to something more generic
-	*/
+	// If you wanna add a add a different file system, that would be a correct entry point:
+	// - Add a different process_YOUR-FILESYSTEM_command function herer
+	// - In addition consider renaming the IpfsCommand to something more generic
 	process_ipfs_command(block_number, command_request, persistence_key)
 }
 
-/** Send a request to the local IPFS node; Can only be called in an offchain worker. * */
+// Send a request to the local IPFS node; Can only be called in an offchain worker.
 pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Error<T>> {
-	let ipfs_request = ipfs::PendingRequest::new(request)
-		.map_err(|_| Error::CannotCreateRequest)?;
+	let ipfs_request =
+		ipfs::PendingRequest::new(request).map_err(|_| Error::CannotCreateRequest)?;
 	let duration = 1_200;
 	ipfs_request
 		.try_wait(Some(sp_io::offchain::timestamp().add(Duration::from_millis(duration))))
@@ -83,29 +78,31 @@ pub fn ipfs_request<T: Config>(request: IpfsRequest) -> Result<IpfsResponse, Err
 		.map_err(|_error| Error::<T>::RequestFailed)
 }
 
-/** Parse Each ipfs response resulting in bytes to be used in callback
-  - If multiple responses are found the last response with bytes is returned.
-*/
+// Parse Each ipfs response resulting in bytes to be used in callback
+//   - If multiple responses are found the last response with bytes is returned.
 pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u8> {
 	let mut callback_response = Vec::<u8>::new();
 
 	for response in responses.clone() {
 		match response {
-			IpfsResponse::CatBytes(bytes_received) =>
+			IpfsResponse::CatBytes(bytes_received) => {
 				if bytes_received.len() > 1 {
 					callback_response = bytes_received
-				},
+				}
+			},
 			IpfsResponse::AddBytes(cid) | IpfsResponse::RemoveBlock(cid) => callback_response = cid,
 
-			IpfsResponse::GetClosestPeers(peer_ids) | IpfsResponse::GetProviders(peer_ids) =>
-				callback_response = multiple_bytes_to_utf8_safe_bytes(peer_ids),
+			IpfsResponse::GetClosestPeers(peer_ids) | IpfsResponse::GetProviders(peer_ids) => {
+				callback_response = multiple_bytes_to_utf8_safe_bytes(peer_ids)
+			},
 
-			IpfsResponse::FindPeer(addresses) |
-			IpfsResponse::LocalAddrs(addresses) |
-			IpfsResponse::Peers(addresses) => callback_response = addresses_to_utf8_safe_bytes(addresses),
+			IpfsResponse::FindPeer(addresses)
+			| IpfsResponse::LocalAddrs(addresses)
+			| IpfsResponse::Peers(addresses) => callback_response = addresses_to_utf8_safe_bytes(addresses),
 
-			IpfsResponse::LocalRefs(refs) =>
-				callback_response = multiple_bytes_to_utf8_safe_bytes(refs),
+			IpfsResponse::LocalRefs(refs) => {
+				callback_response = multiple_bytes_to_utf8_safe_bytes(refs)
+			},
 			IpfsResponse::Addrs(_) => {},
 			IpfsResponse::BitswapStats { .. } => {},
 			IpfsResponse::Identity(_, _) => {},
@@ -115,23 +112,24 @@ pub fn ocw_parse_ipfs_response<T: Config>(responses: Vec<IpfsResponse>) -> Vec<u
 	callback_response
 }
 
-/** Convert a vector of addresses into a comma separated utf8 safe vector of bytes */
+// Convert a vector of addresses into a comma separated utf8 safe vector of bytes
 pub fn addresses_to_utf8_safe_bytes(addresses: Vec<OpaqueMultiaddr>) -> Vec<u8> {
 	multiple_bytes_to_utf8_safe_bytes(addresses.iter().map(|addr| addr.0.clone()).collect())
 }
 
-/** Flatten a Vector of bytes into a comma seperated utf8 safe vector of bytes */
+// Flatten a Vector of bytes into a comma seperated utf8 safe vector of bytes
 pub fn multiple_bytes_to_utf8_safe_bytes(response: Vec<Vec<u8>>) -> Vec<u8> {
 	let mut bytes = Vec::<u8>::new();
 
 	for res in response {
 		match str::from_utf8(&res) {
-			Ok(str) =>
+			Ok(str) => {
 				if bytes.len() == 0 {
 					bytes = Vec::from(str.as_bytes());
 				} else {
 					bytes = [bytes, Vec::from(str.as_bytes())].join(", ".as_bytes());
-				},
+				}
+			},
 			_ => {},
 		}
 	}
@@ -179,7 +177,10 @@ fn process_ipfs_command<T: Config>(
 							return Err(Error::<T>::RequestFailed);
 						}
 
-						match ipfs_request::<T>(IpfsRequest::AddBytes(bytes_to_add, version.clone())) {
+						match ipfs_request::<T>(IpfsRequest::AddBytes(
+							bytes_to_add,
+							version.clone(),
+						)) {
 							Ok(IpfsResponse::AddBytes(cid)) => {
 								// submit_transaction(data);
 								Ok(result.push(IpfsResponse::AddBytes(cid)))
@@ -190,8 +191,9 @@ fn process_ipfs_command<T: Config>(
 
 					IpfsCommand::CatBytes(ref cid) => {
 						match ipfs_request::<T>(IpfsRequest::CatBytes(cid.clone())) {
-							Ok(IpfsResponse::CatBytes(bytes_received)) =>
-								Ok(result.push(IpfsResponse::CatBytes(bytes_received))),
+							Ok(IpfsResponse::CatBytes(bytes_received)) => {
+								Ok(result.push(IpfsResponse::CatBytes(bytes_received)))
+							},
 							_ => Err(Error::<T>::RequestFailed),
 						}
 					},
@@ -221,16 +223,18 @@ fn process_ipfs_command<T: Config>(
 
 					IpfsCommand::FindPeer(ref peer_id) => {
 						match ipfs_request::<T>(IpfsRequest::FindPeer(peer_id.clone())) {
-							Ok(IpfsResponse::FindPeer(addresses)) =>
-								Ok(result.push(IpfsResponse::FindPeer(addresses))),
+							Ok(IpfsResponse::FindPeer(addresses)) => {
+								Ok(result.push(IpfsResponse::FindPeer(addresses)))
+							},
 							_ => Err(Error::<T>::RequestFailed),
 						}
 					},
 
 					IpfsCommand::GetProviders(ref cid) => {
 						match ipfs_request::<T>(IpfsRequest::GetProviders(cid.clone())) {
-							Ok(IpfsResponse::GetProviders(peer_ids)) =>
-								Ok(result.push(IpfsResponse::GetProviders(peer_ids))),
+							Ok(IpfsResponse::GetProviders(peer_ids)) => {
+								Ok(result.push(IpfsResponse::GetProviders(peer_ids)))
+							},
 							_ => Err(Error::<T>::RequestFailed),
 						}
 					},
@@ -253,8 +257,8 @@ fn process_ipfs_command<T: Config>(
 	}
 }
 
-/** Using the CommandRequest<T>.identifier we can attempt to create a lock via StorageValueRef,
-leaving behind a block number of when the lock was formed. */
+// Using the CommandRequest<T>.identifier we can attempt to create a lock via StorageValueRef,
+// leaving behind a block number of when the lock was formed.
 fn acquire_command_request_lock<T: Config>(
 	block_number: T::BlockNumber,
 	command_request: &CommandRequest<T>,
@@ -278,7 +282,7 @@ fn acquire_command_request_lock<T: Config>(
 	})
 }
 
-/** Store a list of command identifiers to remove the lock in a following block */
+// Store a list of command identifiers to remove the lock in a following block
 fn processed_commands<T: Config>(
 	command_request: &CommandRequest<T>,
 	persistence_key: &[u8; 24],
@@ -321,22 +325,22 @@ pub mod pallet {
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	/** Commands for interacting with IPFS
+	// Commands for interacting with IPFS
 
-	 Connection Commands:
-	 - ConnectTo(OpaqueMultiaddr)
-	 - DisconnectFrom(OpaqueMultiaddr)
+	// Connection Commands:
+	// - ConnectTo(OpaqueMultiaddr)
+	// - DisconnectFrom(OpaqueMultiaddr)
 
-	 Data Commands:
-	 - AddBytes(Vec<u8>)
-	 - CatBytes(Vec<u8>)
-	 - InsertPin(Vec<u8>)
-	 - RemoveBlock(Vec<u8>)
-	 - RemovePin(Vec<u8>)
+	// Data Commands:
+	// - AddBytes(Vec<u8>)
+	// - CatBytes(Vec<u8>)
+	// - InsertPin(Vec<u8>)
+	// - RemoveBlock(Vec<u8>)
+	// - RemovePin(Vec<u8>)
 
-	  Dht Commands:
-	  - FindPeer(Vec<u8>)
-	 - GetProviders(Vec<u8>)*/
+	//  Dht Commands:
+	//  - FindPeer(Vec<u8>)
+	// - GetProviders(Vec<u8>)
 	#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, TypeInfo)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub enum IpfsCommand {
@@ -357,8 +361,9 @@ pub mod pallet {
 	}
 
 	pub trait TypeEquality<Rhs = Self>
-		where
-			Rhs: ?Sized, {
+	where
+		Rhs: ?Sized,
+	{
 		fn eq_type(&self, other: &Rhs) -> bool;
 	}
 
@@ -368,12 +373,11 @@ pub mod pallet {
 		}
 	}
 
-	/** CommandRequest is used for issuing requests to an ocw that has IPFS within its runtime.
+	// CommandRequest is used for issuing requests to an ocw that has IPFS within its runtime.
 
-	   - identifier: [u8; 32]
-	   - requester: T::AccountId
-	   - ipfs_commands Vec<IpfsCommand>
-	 **/
+	//   - identifier: [u8; 32]
+	//   - requester: T::AccountId
+	//   - ipfs_commands Vec<IpfsCommand>
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, Default)]
 	#[scale_info(skip_type_params(T))]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -387,12 +391,11 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {}
 
-	/** Errors inform users that something went wrong.
-	 - CannotCreateRequest,
-	 - RequestTimeout,
-	 - RequestFailed,
-	 - FailedToAcquireLock,
-	 */
+	// Errors inform users that something went wrong.
+	// - CannotCreateRequest,
+	// - RequestTimeout,
+	// - RequestFailed,
+	// - FailedToAcquireLock,
 	#[pallet::error]
 	pub enum Error<T> {
 		CannotCreateRequest,
@@ -424,4 +427,3 @@ pub mod pallet {
 		fn build(&self) {}
 	}
 }
-
